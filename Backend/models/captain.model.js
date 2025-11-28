@@ -1,108 +1,88 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
-const captainSchema = new mongoose.Schema(
-  {
+const captainSchema = new mongoose.Schema({
     fullname: {
-      firstname: {
-        type: String,
-        required: true,
-        minlength: 3,
-      },
-      lastname: {
-        type: String,
-      },
+        firstname: {
+            type: String,
+            required: true,
+            minlength: [3, 'Firstname must be at least 3 characters long'],
+        },
+        lastname: {
+            type: String,
+            minlength: [3, 'Lastname must be at least 3 characters long'],
+        }
     },
     email: {
-      type: String,
-      required: true,
-      unique: true,
-      match: /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        match: [ /^\S+@\S+\.\S+$/, 'Please enter a valid email' ]
     },
     password: {
-      type: String,
-      required: true,
-      minlength: 8,
-      select: false,
-    },
-    phone: {
-      type: String,
-      minlength: 10,
-      maxlength: 10,
+        type: String,
+        required: true,
+        select: false,
     },
     socketId: {
-      type: String,
+        type: String,
     },
-    rides: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Ride",
-      },
-    ],
     status: {
-      type: String,
-      enum: ["active", "inactive"],
-      default: "inactive",
+        type: String,
+        enum: ['active', 'inactive'],
+        default: 'inactive',
     },
     vehicle: {
-      color: {
-        type: String,
-        required: true,
-        minlength: [3, "Color must be at least 3 characters long"],
-      },
-      number: {
-        type: String,
-        required: true,
-        minlength: [3, "Plate must be at least 3 characters long"],
-      },
-      capacity: {
-        type: Number,
-        required: true,
-      },
-      type: {
-        type: String,
-        required: true,
-        enum: ["car", "bike", "auto"],
-      },
+        color: {
+            type: String,
+            required: true,
+            minlength: [3, 'Color must be at least 3 characters long'],
+        },
+        plate: {
+            type: String,
+            required: true,
+            minlength: [3, 'Plate must be at least 3 characters long'],
+        },
+        capacity: {
+            type: Number,
+            required: true,
+            min: [1, 'Capacity must be at least 1'],
+        },
+        type: {
+            type: String,
+            required: true,
+            // AQUÍ AGREGAMOS TODOS LOS TIPOS PARA QUE NO FALLE EN TU ZONA
+            enum: ['car', 'motorcycle', 'auto', 'moto', 'bike'], 
+        }
     },
-
+    // --- ESTA ES LA PARTE QUE FALTABA Y CAUSA EL PROBLEMA ---
+    // Le decimos a Mongoose que acepte coordenadas numéricas simples
     location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        required: true,
-        default: "Point",
-      },
-      coordinates: {
-        type: [Number],
-        required: true,
-      },
-    },
-    emailVerified: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  { timestamps: true }
-);
-
-captainSchema.statics.hashPassword = async function (password) {
-  return await bcrypt.hash(password, 10);
-};
+        ltd: {
+            type: Number,
+        },
+        lng: {
+            type: Number,
+        }
+    }
+    // --------------------------------------------------------
+})
 
 captainSchema.methods.generateAuthToken = function () {
-  return jwt.sign(
-    { id: this._id, userType: "captain" },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "24h",
-    }
-  );
-};
+    const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    return token;
+}
 
 captainSchema.methods.comparePassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
-};
+    return await bcrypt.compare(password, this.password);
+}
 
-module.exports = mongoose.model("Captain", captainSchema);
+captainSchema.statics.hashPassword = async function (password) {
+    return await bcrypt.hash(password, 10);
+}
+
+const captainModel = mongoose.model('captain', captainSchema);
+
+module.exports = captainModel;
