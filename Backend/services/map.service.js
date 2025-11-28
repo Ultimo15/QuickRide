@@ -1,6 +1,28 @@
 const axios = require("axios");
 const captainModel = require("../models/captain.model");
 
+// --- FUNCIÓN MATEMÁTICA PARA CALCULAR DISTANCIA (Fórmula de Haversine) ---
+// Esto calcula la distancia real en KM entre dos coordenadas sin depender de MongoDB
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radio de la tierra en km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distancia en km
+  return d;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
+}
+// ------------------------------------------------------------------------
+
 module.exports.getAddressCoordinate = async (address) => {
   const apiKey = process.env.GOOGLE_MAPS_API;
   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
@@ -77,19 +99,44 @@ module.exports.getAutoCompleteSuggestions = async (input) => {
 };
 
 module.exports.getCaptainsInTheRadius = async (ltd, lng, radius, vehicleType) => {
-  // radius in km
-  
   try {
+    console.log(`Buscando conductores. Origen: ${ltd}, ${lng}. Radio: ${radius}km. Tipo: ${vehicleType}`);
+
+    // 1. PASO CLAVE: Buscamos TODOS los conductores activos con ese vehículo
+    // (Quitamos el filtro de ubicación de la query de MongoDB para evitar errores de formato)
     const captains = await captainModel.find({
-      location: {
-        $geoWithin: {
-          $centerSphere: [[lng, ltd], radius / 6371],
-        },
-      },
+      status: "active",
       "vehicle.type": vehicleType,
     });
-    return captains;
+
+    console.log(`Conductores encontrados en DB (sin filtrar distancia): ${captains.length}`);
+
+    // 2. Filtramos manualmente usando JavaScript y la fórmula matemática
+    const captainsInRadius = captains.filter((captain) => {
+      // Verificamos que el conductor tenga coordenadas válidas
+      if (!captain.location || !captain.location.ltd || !captain.location.lng) {
+        console.log(`Conductor ${captain.fullname.firstname} ignorado: Sin ubicación válida`);
+        return false;
+      }
+
+      // Calculamos distancia
+      const distance = getDistanceFromLatLonInKm(
+        ltd,
+        lng,
+        captain.location.ltd,
+        captain.location.lng
+      );
+
+      console.log(`Conductor: ${captain.fullname.firstname} | Distancia: ${distance.toFixed(2)} km`);
+
+      // Retornamos true si la distancia es menor o igual al radio
+      return distance <= radius;
+    });
+
+    return captainsInRadius;
+
   } catch (error) {
+    console.error("Error buscando conductores:", error);
     throw new Error("Error in getting captain in radius: " + error.message);
   }
 };
