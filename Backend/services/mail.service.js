@@ -1,8 +1,10 @@
+// 👇 ESTA LÍNEA ES LA QUE FALTA. SIN ELLA, NADA FUNCIONA.
 const { createTransport } = require("nodemailer");
 
-// Usamos el servicio 'gmail' predefinido para evitar líos de puertos
 const transport = createTransport({
-  service: 'gmail', 
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // true para 465, false para otros puertos
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
@@ -11,22 +13,15 @@ const transport = createTransport({
 
 const sendMail = async (to, subject, html) => {
   try {
-    // DIAGNÓSTICO: Esto aparecerá en tus logs antes de intentar enviar
-    // Si sale "undefined", es que las variables no están bien puestas en Render
-    console.log("Intentando enviar correo desde:", process.env.MAIL_USER);
-
     const info = await transport.sendMail({
       from: process.env.MAIL_USER,
       to,
       subject,
       html,
     });
-    
-    console.log("Email enviado con éxito:", info.messageId);
-    return info;
+    console.log("Email sent:", info);
   } catch (error) {
-    console.error("Error fatal enviando correo:", error);
-    throw error;
+    console.error("Error sending email:", error);
   }
 };
 
