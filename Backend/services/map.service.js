@@ -140,3 +140,43 @@ module.exports.getCaptainsInTheRadius = async (ltd, lng, radius, vehicleType) =>
     throw new Error("Error in getting captain in radius: " + error.message);
   }
 };
+
+module.exports.getCaptainsInTheRadius = async (ltd, lng, radius, vehicleType) => {
+  try {
+    console.log(`Buscando conductores. Origen: ${ltd}, ${lng}. Radio: ${radius}km. Tipo: ${vehicleType}`);
+
+    const captains = await captainModel.find({
+      status: "active",
+      "vehicle.type": vehicleType,
+    });
+
+    console.log(`Conductores encontrados en DB: ${captains.length}`);
+
+    const captainsInRadius = captains.filter((captain) => {
+      // VALIDACIÓN ROBUSTA:
+      // Convertimos a número usando parseFloat por si en la DB están como String
+      const latDriver = parseFloat(captain.location?.ltd);
+      const lngDriver = parseFloat(captain.location?.lng);
+
+      // Si no son números válidos (NaN), ignoramos al conductor
+      if (isNaN(latDriver) || isNaN(lngDriver)) {
+        console.log(`Conductor ${captain.fullname.firstname} ignorado: Coordenadas inválidas`);
+        return false;
+      }
+
+      // Calculamos distancia usando los números limpios
+      const distance = getDistanceFromLatLonInKm(ltd, lng, latDriver, lngDriver);
+
+      console.log(`Conductor: ${captain.fullname.firstname} | Distancia: ${distance.toFixed(2)} km`);
+
+      return distance <= radius;
+    });
+
+    return captainsInRadius;
+
+  } catch (error) {
+    console.error("Error buscando conductores:", error);
+    throw new Error("Error in getting captain in radius: " + error.message);
+  }
+};
+
