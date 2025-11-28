@@ -1,10 +1,9 @@
-// 👇 ESTA LÍNEA ES LA QUE FALTA. SIN ELLA, NADA FUNCIONA.
 const { createTransport } = require("nodemailer");
 
 const transport = createTransport({
   host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // true para 465, false para otros puertos
+  port: 465,        // CAMBIADO: Puerto seguro SSL (Render no bloquea este)
+  secure: true,     // CAMBIADO: 'true' es obligatorio para el puerto 465
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
@@ -20,8 +19,10 @@ const sendMail = async (to, subject, html) => {
       html,
     });
     console.log("Email sent:", info);
+    return info;
   } catch (error) {
     console.error("Error sending email:", error);
+    throw error; // Esto asegura que si falla, tu servidor se entere
   }
 };
 
