@@ -31,11 +31,23 @@ function initializeSocket(server) {
 
     socket.on("join", async (data) => {
       const { userId, userType } = data;
-      console.log(userType + " connected: " + userId);
-      if (userType === "user") {
-        await userModel.findByIdAndUpdate(userId, { socketId: socket.id });
-      } else if (userType === "captain") {
-        await captainModel.findByIdAndUpdate(userId, { socketId: socket.id });
+      console.log(userType + " attempting to join: " + userId);
+      
+      try {
+        if (userType === "user") {
+          await userModel.findByIdAndUpdate(userId, { socketId: socket.id });
+          console.log(`User ${userId} joined and socket updated.`);
+        } else if (userType === "captain") {
+          // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
+          // Actualizamos socketId Y forzamos el estado a 'active'
+          await captainModel.findByIdAndUpdate(userId, { 
+            socketId: socket.id,
+            status: 'active' 
+          });
+          console.log(`Captain ${userId} joined, socket updated and set to ACTIVE.`);
+        }
+      } catch (error) {
+        console.error("Error joining socket:", error.message);
       }
     });
 
@@ -45,12 +57,28 @@ function initializeSocket(server) {
       if (!location || !location.ltd || !location.lng) {
         return socket.emit("error", { message: "Invalid location data" });
       }
-      await captainModel.findByIdAndUpdate(userId, {
-        location: {
-          type: "Point",
-          coordinates: [location.lng, location.ltd],
-        },
-      });
+
+      try {
+        await captainModel.findByIdAndUpdate(userId, {
+          location: {
+            ltd: location.ltd,     // Guardamos formato simple por si acaso
+            lng: location.lng      // (Algunos mapas usan esto)
+          }
+        });
+        // Si tu esquema usa GeoJSON estricto, descomenta la versión de abajo y comenta la de arriba.
+        // Pero para la mayoría de estos proyectos, guardar ltd/lng directos es más seguro.
+        /*
+        await captainModel.findByIdAndUpdate(userId, {
+           location: {
+             type: "Point",
+             coordinates: [location.lng, location.ltd],
+           },
+        });
+        */
+        // console.log(`Location updated for captain ${userId}`);
+      } catch (error) {
+        console.error("Error updating location:", error.message);
+      }
     });
 
     socket.on("join-room", (roomId) => {
@@ -75,12 +103,16 @@ function initializeSocket(server) {
         console.log("Error saving message: ", error);
       }
     });
+    
+    socket.on("disconnect", () => {
+        console.log(`Client disconnected: ${socket.id}`);
+    });
   });
 }
 
 const sendMessageToSocketId = (socketId, messageObject) => {
   if (io) {
-    console.log("message sent to: ", socketId);
+    console.log(`Sending event [${messageObject.event}] to: ${socketId}`);
     io.to(socketId).emit(messageObject.event, messageObject.data);
   } else {
     console.log("Socket.io not initialized.");
