@@ -62,17 +62,23 @@ module.exports.createRide = async (req, res) => {
       await user.save();
     }
 
+    // Respondemos al pasajero de inmediato
     res.status(201).json(ride);
 
+    // Proceso en segundo plano para notificar conductores
     Promise.resolve().then(async () => {
       try {
         const pickupCoordinates = await mapService.getAddressCoordinate(pickup);
         console.log("Pickup Coordinates", pickupCoordinates);
 
+        // --- CAMBIO AQUÍ: Aumentamos el radio de 4 a 100 KM para pruebas ---
+        // Esto evita que la solicitud parpadee si el GPS es inestable
+        const searchRadius = 100; 
+
         const captainsInRadius = await mapService.getCaptainsInTheRadius(
           pickupCoordinates.ltd,
           pickupCoordinates.lng,
-          4,
+          searchRadius, 
           vehicleType
         );
 
@@ -82,11 +88,12 @@ module.exports.createRide = async (req, res) => {
           .findOne({ _id: ride._id })
           .populate("user");
 
-        console.log(
-          captainsInRadius.map(
-            (ride) => `${ride.fullname.firstname} ${ride.fullname.lastname} `
-          )
+        console.log(`Conductores encontrados en ${searchRadius}km: ${captainsInRadius.length}`);
+        
+        captainsInRadius.map(
+          (c) => console.log(`Notificando a: ${c.fullname.firstname} ${c.fullname.lastname}`)
         );
+
         captainsInRadius.map((captain) => {
           sendMessageToSocketId(captain.socketId, {
             event: "new-ride",
@@ -176,9 +183,6 @@ module.exports.confirmRide = async (req, res) => {
       data: ride,
     });
 
-    // TODO: Remove ride from other captains
-    // Implement logic here, maybe emit an event or update captain listings
-
     return res.status(200).json(ride);
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -251,10 +255,12 @@ module.exports.cancelRide = async (req, res) => {
     );
 
     const pickupCoordinates = await mapService.getAddressCoordinate(ride.pickup);
+    
+    // También aumentamos el radio aquí para notificar la cancelación a todos
     const captainsInRadius = await mapService.getCaptainsInTheRadius(
       pickupCoordinates.ltd,
       pickupCoordinates.lng,
-      4,
+      100, // Radio aumentado
       ride.vehicle
     );
 
