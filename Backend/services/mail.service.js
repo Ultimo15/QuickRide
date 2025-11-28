@@ -1,8 +1,7 @@
-const { createTransport } = require("nodemailer");
-
 const transport = createTransport({
   host: "smtp.gmail.com",
-  port: 465,
+  port: 587,          // <--- CAMBIO 1: Puerto 587 (TLS)
+  secure: false,      // <--- CAMBIO 2: secure false (necesario para puerto 587)
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
