@@ -28,10 +28,11 @@ function NewRide({
 
   return (
     <>
+      {/* ⭐ Z-INDEX CORREGIDO: z-20 para aparecer sobre el panel de detalles (z-10) */}
       <div
         className={`${
           showPanel ? "bottom-0" : "-bottom-[60%]"
-        } transition-all duration-500 absolute bg-white w-full rounded-t-xl p-4 pt-0`}
+        } transition-all duration-500 absolute bg-white w-full rounded-t-xl p-4 pt-0 z-20`}
       >
         <div>
           <div className="flex justify-between items-center pb-4 pt-2">
