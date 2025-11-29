@@ -26,7 +26,7 @@ function UserHomeScreen() {
   const [mapLocation, setMapLocation] = useState("");
   const [rideCreated, setRideCreated] = useState(false);
 
-  // 🆕 NUEVOS ESTADOS PARA TRACKING
+  // 🆕 ESTADOS PARA TRACKING EN TIEMPO REAL
   const [captainLocation, setCaptainLocation] = useState(null);
   const [captainVehicleType, setCaptainVehicleType] = useState(null);
   const [eta, setEta] = useState(null);
@@ -419,12 +419,10 @@ function UserHomeScreen() {
       className="relative w-full h-dvh bg-contain"
       style={{ backgroundImage: `url(${map})` }}
     >
-      {/* ✅ SIDEBAR CON Z-INDEX CORREGIDO */}
-      <div className="relative z-50">
-        <Sidebar />
-      </div>
+      {/* ✅ SIDEBAR SIN WRAPPER EXTRA - CORRECCIÓN APLICADA */}
+      <Sidebar />
 
-      {/* MAPA */}
+      {/* MAPA - z-0 */}
       <iframe
         ref={mapIframeRef}
         src={mapLocation}
@@ -434,7 +432,7 @@ function UserHomeScreen() {
         referrerPolicy="no-referrer-when-downgrade"
       ></iframe>
 
-      {/* 🆕 INDICADOR DE TRACKING EN TIEMPO REAL */}
+      {/* 🆕 INDICADOR DE TRACKING EN TIEMPO REAL - z-30 */}
       {(rideStatus === "accepted" || rideStatus === "ongoing") && captainLocation && (
         <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-30 bg-white rounded-full px-6 py-3 shadow-lg flex items-center gap-3">
           <div className="animate-pulse">
@@ -453,7 +451,7 @@ function UserHomeScreen() {
         </div>
       )}
 
-      {/* PANEL DE BÚSQUEDA DE VIAJE */}
+      {/* PANEL DE BÚSQUEDA DE VIAJE - z-10 */}
       {showFindTripPanel && (
         <div className="absolute bottom-0 flex flex-col justify-start p-4 pb-2 gap-4 rounded-t-lg bg-white w-full z-10 max-h-[80vh]">
           <h1 className="text-2xl font-semibold">Buscar viaje</h1>
@@ -482,7 +480,7 @@ function UserHomeScreen() {
             </div>
           </div>
 
-          {/* ✅ SUGERENCIAS FUERA DEL SCROLL, CON ALTURA FIJA */}
+          {/* ✅ SUGERENCIAS CON ALTURA FIJA Y SCROLL */}
           {locationSuggestion.length > 0 && (
             <div className="w-full max-h-60 overflow-y-auto">
               <LocationSuggestions
@@ -507,6 +505,7 @@ function UserHomeScreen() {
         </div>
       )}
 
+      {/* PANEL DE SELECCIÓN DE VEHÍCULO - z-10 */}
       <SelectVehicle
         selectedVehicle={setSelectedVehicle}
         showPanel={showSelectVehiclePanel}
@@ -516,6 +515,7 @@ function UserHomeScreen() {
         fare={fare}
       />
 
+      {/* PANEL DE DETALLES DEL VIAJE - z-10 */}
       <RideDetails
         pickupLocation={pickupLocation}
         destinationLocation={destinationLocation}
@@ -529,7 +529,7 @@ function UserHomeScreen() {
         loading={loading}
         rideCreated={rideCreated}
         confirmedRideData={confirmedRideData}
-        // 🆕 PASAR PROPS PARA MOSTRAR TRACKING
+        // 🆕 PROPS PARA TRACKING EN TIEMPO REAL
         captainLocation={captainLocation}
         eta={eta}
         rideStatus={rideStatus}
