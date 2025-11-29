@@ -36,4 +36,3 @@ export const Alert = ({ heading, text, isVisible, onClose, type }) => {
         </div>
     );
 };
-```
