@@ -30,7 +30,6 @@ const captainSchema = new mongoose.Schema(
     phone: {
       type: String,
       minlength: 10,
-      // maxlength: 10, // Comentado por si acaso usas códigos de país (+58, +57) que alargan el string
     },
     socketId: {
       type: String,
@@ -52,7 +51,8 @@ const captainSchema = new mongoose.Schema(
         required: true,
         minlength: [3, "Color must be at least 3 characters long"],
       },
-      number: { // Nota: En tu DB vi que usas 'number' para la placa, así que lo dejé así.
+      number: {
+        // Placa del vehículo
         type: String,
         required: true,
         minlength: [3, "Plate must be at least 3 characters long"],
@@ -64,26 +64,39 @@ const captainSchema = new mongoose.Schema(
       type: {
         type: String,
         required: true,
-        // Agregamos 'moto' y 'motorcycle' para compatibilidad total
         enum: ["car", "bike", "auto", "moto", "motorcycle"],
       },
     },
-
-    // --- CORRECCIÓN CRÍTICA ---
-    // Esto permite que Mongoose lea las coordenadas que guardaste manualmente
     location: {
       ltd: {
         type: Number,
       },
       lng: {
         type: Number,
-      }
+      },
     },
-    // --------------------------
-
     emailVerified: {
       type: Boolean,
       default: false,
+    },
+    // ✅ CAMPOS DE ESTADÍSTICAS
+    completedRides: {
+      type: Number,
+      default: 0,
+    },
+    cancelledRides: {
+      type: Number,
+      default: 0,
+    },
+    totalEarnings: {
+      type: Number,
+      default: 0,
+    },
+    rating: {
+      type: Number,
+      default: 5,
+      min: 0,
+      max: 5,
     },
   },
   { timestamps: true }
