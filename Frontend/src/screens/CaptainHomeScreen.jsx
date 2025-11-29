@@ -64,6 +64,9 @@ function CaptainHomeScreen() {
   );
   const [error, setError] = useState("");
 
+  // 🆕 REF PARA CONTROLAR EL INTERVALO DE UBICACIÓN
+  const locationIntervalRef = useRef(null);
+
   // Paneles
   const [showCaptainDetailsPanel, setShowCaptainDetailsPanel] = useState(true);
   const [showNewRidePanel, setShowNewRidePanel] = useState(
@@ -75,7 +78,7 @@ function CaptainHomeScreen() {
 
   // 🔊 Estados para sonido y vibración
   const notificationSound = useRef(null);
-  const notificationInterval = useRef(null); // 🔊 NUEVO: Para el bucle de sonido
+  const notificationInterval = useRef(null);
   const [soundEnabled, setSoundEnabled] = useState(
     localStorage.getItem("soundEnabled") !== "false"
   );
@@ -106,17 +109,16 @@ function CaptainHomeScreen() {
         notificationSound.current.pause();
         notificationSound.current = null;
       }
-      // 🔊 NUEVO: Limpiar intervalo al desmontar
       if (notificationInterval.current) {
         clearInterval(notificationInterval.current);
       }
     };
   }, [audioReady]);
 
-  // 🔊 NUEVO: Función para reproducir sonido una vez
+  // 🔊 Función para reproducir sonido una vez
   const playSoundOnce = () => {
     if (soundEnabled && notificationSound.current) {
-      notificationSound.current.currentTime = 0; // Reiniciar desde el inicio
+      notificationSound.current.currentTime = 0;
       notificationSound.current
         .play()
         .then(() => {
@@ -127,7 +129,6 @@ function CaptainHomeScreen() {
         });
     }
 
-    // Vibración
     if ("vibrate" in navigator) {
       try {
         navigator.vibrate([300, 100, 300]);
@@ -138,25 +139,22 @@ function CaptainHomeScreen() {
     }
   };
 
-  // 🔊 NUEVO: Iniciar bucle de notificación
+  // 🔊 Iniciar bucle de notificación
   const startNotificationLoop = () => {
-    // Limpiar cualquier intervalo previo
     if (notificationInterval.current) {
       clearInterval(notificationInterval.current);
     }
 
-    // Reproducir inmediatamente
     playSoundOnce();
 
-    // Repetir cada 3 segundos (puedes ajustar este valor)
     notificationInterval.current = setInterval(() => {
       playSoundOnce();
-    }, 3000); // 3000ms = 3 segundos
+    }, 3000);
 
     Console.log("🔁 Bucle de notificación iniciado");
   };
 
-  // 🔊 NUEVO: Detener bucle de notificación
+  // 🔊 Detener bucle de notificación
   const stopNotificationLoop = () => {
     if (notificationInterval.current) {
       clearInterval(notificationInterval.current);
@@ -180,7 +178,6 @@ function CaptainHomeScreen() {
   };
 
   const acceptRide = async () => {
-    // 🔊 NUEVO: Detener sonido al aceptar
     stopNotificationLoop();
 
     try {
@@ -200,6 +197,10 @@ function CaptainHomeScreen() {
         setMapLocation(
           `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng} to ${newRide.pickup}&output=embed`
         );
+        
+        // 🆕 INICIAR ENVÍO DE UBICACIÓN PERIÓDICA
+        startLocationTracking();
+        
         Console.log(response);
       }
     } catch (error) {
@@ -229,6 +230,13 @@ function CaptainHomeScreen() {
         );
         setShowBtn("end-ride");
         setLoading(false);
+        
+        // 🆕 NOTIFICAR CAMBIO DE ESTADO A "ongoing"
+        socket.emit("ride-status-update", {
+          rideId: newRide._id,
+          status: "ongoing"
+        });
+        
         Console.log(response);
       }
     } catch (err) {
@@ -253,6 +261,10 @@ function CaptainHomeScreen() {
             },
           }
         );
+        
+        // 🆕 DETENER ENVÍO DE UBICACIÓN
+        stopLocationTracking();
+        
         setMapLocation(
           `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng}&output=embed`
         );
@@ -310,9 +322,106 @@ function CaptainHomeScreen() {
     }
   };
 
+  // 🆕 FUNCIÓN PARA ENVIAR UBICACIÓN EN TIEMPO REAL AL USUARIO
+  const sendLocationToUser = () => {
+    if (navigator.geolocation && newRide._id && newRide._id !== defaultRideData._id) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const locationData = {
+            rideId: newRide._id,
+            location: {
+              ltd: position.coords.latitude,
+              lng: position.coords.longitude,
+            },
+            vehicleType: captain?.vehicle?.type || "car"
+          };
+
+          // Emitir ubicación al usuario a través del socket
+          socket.emit("captain-location-update", locationData);
+          
+          // También calcular y enviar ETA
+          calculateAndSendETA(position.coords.latitude, position.coords.longitude);
+          
+          Console.log("📍 Ubicación enviada al usuario:", locationData);
+        },
+        (error) => {
+          Console.error("Error obteniendo ubicación para tracking:", error);
+        }
+      );
+    }
+  };
+
+  // 🆕 CALCULAR Y ENVIAR ETA AL USUARIO
+  const calculateAndSendETA = async (currentLat, currentLng) => {
+    try {
+      // Determinar el destino según el estado del viaje
+      let destination = "";
+      if (showBtn === "otp") {
+        // Conductor va hacia el punto de recogida
+        destination = newRide.pickup;
+      } else if (showBtn === "end-ride") {
+        // Conductor va hacia el destino final
+        destination = newRide.destination;
+      } else {
+        return; // No hay viaje activo
+      }
+
+      // Llamar a la API para calcular distancia/tiempo
+      const response = await axios.get(
+        `${import.meta.env.VITE_SERVER_URL}/ride/get-fare?pickup=${currentLat},${currentLng}&destination=${destination}`,
+        {
+          headers: { token: token },
+        }
+      );
+
+      if (response.data && response.data.duration) {
+        const etaMinutes = Math.ceil(response.data.duration / 60);
+        
+        // Enviar ETA al usuario
+        socket.emit("ride-eta-update", {
+          rideId: newRide._id,
+          eta: etaMinutes
+        });
+        
+        Console.log(`⏱️ ETA enviado: ${etaMinutes} minutos`);
+      }
+    } catch (error) {
+      Console.error("Error calculando ETA:", error);
+    }
+  };
+
+  // 🆕 INICIAR TRACKING DE UBICACIÓN (cada 5 segundos)
+  const startLocationTracking = () => {
+    // Limpiar intervalo previo si existe
+    if (locationIntervalRef.current) {
+      clearInterval(locationIntervalRef.current);
+    }
+
+    // Enviar ubicación inmediatamente
+    sendLocationToUser();
+
+    // Configurar intervalo de 5 segundos
+    locationIntervalRef.current = setInterval(() => {
+      sendLocationToUser();
+    }, 5000);
+
+    Console.log("🎯 Tracking de ubicación iniciado (cada 5 segundos)");
+  };
+
+  // 🆕 DETENER TRACKING DE UBICACIÓN
+  const stopLocationTracking = () => {
+    if (locationIntervalRef.current) {
+      clearInterval(locationIntervalRef.current);
+      locationIntervalRef.current = null;
+      Console.log("⏹️ Tracking de ubicación detenido");
+    }
+  };
+
   const clearRideData = () => {
-    // 🔊 NUEVO: Detener sonido al cancelar
     stopNotificationLoop();
+    
+    // 🆕 DETENER TRACKING AL CANCELAR
+    stopLocationTracking();
 
     setShowBtn("accept");
     setLoading(false);
@@ -336,7 +445,6 @@ function CaptainHomeScreen() {
     socket.on("new-ride", (data) => {
       Console.log("🚗 Nuevo viaje disponible:", data);
 
-      // 🔊 NUEVO: Iniciar bucle de notificación
       startNotificationLoop();
 
       setShowBtn("accept");
@@ -347,20 +455,23 @@ function CaptainHomeScreen() {
     socket.on("ride-cancelled", (data) => {
       Console.log("❌ Viaje cancelado", data);
       
-      // 🔊 NUEVO: Detener sonido al cancelar desde servidor
       stopNotificationLoop();
+      
+      // 🆕 DETENER TRACKING SI EL VIAJE ES CANCELADO
+      stopLocationTracking();
       
       updateLocation();
       clearRideData();
     });
 
     return () => {
-      // 🔊 NUEVO: Limpiar al desmontar componente
       stopNotificationLoop();
+      
+      // 🆕 LIMPIAR TRACKING AL DESMONTAR
+      stopLocationTracking();
     };
   }, [captain]);
 
-  // 🔊 NUEVO: Detener sonido cuando se cierra el panel manualmente
   useEffect(() => {
     if (!showNewRidePanel) {
       stopNotificationLoop();
@@ -466,9 +577,13 @@ function CaptainHomeScreen() {
         onClose={hideAlert}
         type={alert.type}
       />
-      <Sidebar />
+      
+      {/* ✅ SIDEBAR CON Z-INDEX CORREGIDO */}
+      <div className="relative z-50">
+        <Sidebar />
+      </div>
 
-      {/* 🔊 NUEVO: Toggle de sonido reposicionado (más abajo) */}
+      {/* 🔊 Toggle de sonido */}
       <button
         onClick={toggleSound}
         className="absolute top-20 right-4 z-50 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all active:scale-95"
@@ -483,15 +598,14 @@ function CaptainHomeScreen() {
 
       <iframe
         src={mapLocation}
-        className="map w-full h-[80vh]"
+        className="map w-full h-[80vh] z-0"
         allowFullScreen={true}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
       ></iframe>
 
       {showCaptainDetailsPanel && (
-        <div className="absolute bottom-0 flex flex-col justify-start p-4 gap-2 rounded-t-lg bg-white h-fit w-full">
-          {/* Detalles del conductor */}
+        <div className="absolute bottom-0 flex flex-col justify-start p-4 gap-2 rounded-t-lg bg-white h-fit w-full z-10">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="my-2 select-none rounded-full w-10 h-10 bg-blue-400 mx-auto flex items-center justify-center">
@@ -520,7 +634,6 @@ function CaptainHomeScreen() {
             </div>
           </div>
 
-          {/* Estadísticas de viajes */}
           <div className="flex justify-around items-center mt-2 py-4 rounded-lg bg-zinc-800">
             <div className="flex flex-col items-center text-white">
               <h1 className="mb-1 text-xl">{rides?.accepted}</h1>
@@ -548,7 +661,6 @@ function CaptainHomeScreen() {
             </div>
           </div>
 
-          {/* Detalles del vehículo */}
           <div className="flex justify-between border-2 items-center pl-3 py-2 rounded-lg">
             <div>
               <h1 className="text-lg font-semibold leading-6 tracking-tighter ">
