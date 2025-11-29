@@ -48,6 +48,9 @@ function UserHomeScreen() {
   const [showFindTripPanel, setShowFindTripPanel] = useState(true);
   const [showSelectVehiclePanel, setShowSelectVehiclePanel] = useState(false);
   const [showRideDetailsPanel, setShowRideDetailsPanel] = useState(false);
+  
+  // 🆕 Estado para controlar visibilidad del sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLocationChange = useCallback(
     debounce(async (inputValue, token) => {
@@ -431,7 +434,7 @@ function UserHomeScreen() {
       style={{ backgroundImage: `url(${map})` }}
     >
       {/* ✅ SIDEBAR SIN WRAPPER EXTRA - CORRECCIÓN APLICADA */}
-      <Sidebar />
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* MAPA - z-0 */}
       <iframe
@@ -444,7 +447,8 @@ function UserHomeScreen() {
       ></iframe>
 
       {/* 🆕 INDICADOR DE TRACKING EN TIEMPO REAL - z-30 */}
-      {(rideStatus === "accepted" || rideStatus === "ongoing") && captainLocation && (
+      {/* 🔧 Se oculta cuando el sidebar está abierto */}
+      {!sidebarOpen && (rideStatus === "accepted" || rideStatus === "ongoing") && captainLocation && (
         <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-30 bg-white rounded-full px-6 py-3 shadow-lg flex items-center gap-3">
           <div className="animate-pulse">
             <span className="text-2xl">{getVehicleIcon(captainVehicleType)}</span>
