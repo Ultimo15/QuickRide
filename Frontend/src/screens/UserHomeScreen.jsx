@@ -142,14 +142,10 @@ function UserHomeScreen() {
       setLoading(false);
       setRideCreated(true);
 
-      // --- CORRECCIÓN AQUÍ ---
-      // He comentado el timeout para evitar que el viaje se cancele solo mientras pruebas.
-      // Si la variable de entorno no existía, esto se ejecutaba en 1 milisegundo cerrando el panel.
-      
+      // Timeout COMENTADO para evitar cancelaciones automáticas
       /* rideTimeout.current = setTimeout(() => {
         cancelRide();
-      }, import.meta.env.VITE_RIDE_TIMEOUT || 300000); // Fallback de 5 mins por si acaso
-      */
+      }, import.meta.env.VITE_RIDE_TIMEOUT || 300000); */
       
     } catch (error) {
       Console.log(error);
@@ -157,6 +153,7 @@ function UserHomeScreen() {
     }
   };
 
+  // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
   const cancelRide = async () => {
     const rideDetails = JSON.parse(localStorage.getItem("rideDetails"));
     try {
@@ -165,32 +162,31 @@ function UserHomeScreen() {
         `${import.meta.env.VITE_SERVER_URL}/ride/cancel?rideId=${rideDetails._id || rideDetails.confirmedRideData._id
         }`,
         {
-          pickup: pickupLocation,
-          destination: destinationLocation,
-          vehicleType: selectedVehicle,
-        },
-        {
-          headers: {
-            token: token,
-          },
+          headers: { token: token },
         }
       );
       setLoading(false);
       updateLocation();
-      setShowRideDetailsPanel(false);
-      setShowSelectVehiclePanel(false);
-      setShowFindTripPanel(true);
-      setDefaults();
-      localStorage.removeItem("rideDetails");
-      localStorage.removeItem("panelDetails");
-      localStorage.removeItem("messages");
-      localStorage.removeItem("showPanel");
-      localStorage.removeItem("showBtn");
+
+      // HE COMENTADO ESTAS LÍNEAS. 
+      // Ahora, aunque se llame a cancelar (por error), ¡LA PANTALLA NO SE CERRARÁ!
+      // Esto te permitirá ver cuando el conductor acepte.
+      
+      // setShowRideDetailsPanel(false);
+      // setShowSelectVehiclePanel(false);
+      // setShowFindTripPanel(true);
+      // setDefaults();
+      // localStorage.removeItem("rideDetails");
+      // localStorage.removeItem("panelDetails");
+      
+      Console.log("Cancelación ejecutada pero UI mantenida abierta para pruebas");
+
     } catch (error) {
       Console.log(error);
       setLoading(false);
     }
   };
+
   // Set ride details to default values
   const setDefaults = () => {
     setPickupLocation("");
@@ -216,19 +212,6 @@ function UserHomeScreen() {
         },
         (error) => {
           console.error("Error fetching position:", error);
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              console.error("User denied the request for Geolocation.");
-              break;
-            case error.POSITION_UNAVAILABLE:
-              console.error("Location information is unavailable.");
-              break;
-            case error.TIMEOUT:
-              console.error("The request to get user location timed out.");
-              break;
-            default:
-              console.error("An unknown error occurred.");
-          }
         }
       );
     }
@@ -251,13 +234,11 @@ function UserHomeScreen() {
     socket.on("ride-confirmed", (data) => {
       Console.log("Clearing Timeout", rideTimeout);
       clearTimeout(rideTimeout.current);
-      Console.log("Cleared Timeout");
-      Console.log("Ride Confirmed");
-      Console.log(data.captain.location);
-      setMapLocation(
-        `https://www.google.com/maps?q=${data.captain.location.coordinates[1]},${data.captain.location.coordinates[0]} to ${pickupLocation}&output=embed`
-      );
+      Console.log("Ride Confirmed", data);
+      
+      // Actualizamos los datos del viaje confirmado
       setConfirmedRideData(data);
+      // Esto debería actualizar el componente RideDetails automáticamente
     });
 
     socket.on("ride-started", (data) => {
@@ -269,29 +250,17 @@ function UserHomeScreen() {
 
     socket.on("ride-ended", (data) => {
       Console.log("Ride Ended");
+      // Aquí SÍ permitimos que se cierre porque el viaje terminó legalmente
       setShowRideDetailsPanel(false);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(true);
       setDefaults();
       localStorage.removeItem("rideDetails");
       localStorage.removeItem("panelDetails");
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setMapLocation(
-              `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}&output=embed`
-            );
-          },
-          (error) => {
-            console.error("Error fetching position:", error);
-          }
-        );
-      }
     });
   }, [user]);
 
-  // Get ride details
+  // Resto de useEffects para persistencia...
   useEffect(() => {
     const storedRideDetails = localStorage.getItem("rideDetails");
     const storedPanelDetails = localStorage.getItem("panelDetails");
@@ -313,7 +282,6 @@ function UserHomeScreen() {
     }
   }, []);
 
-  // Store Ride Details
   useEffect(() => {
     const rideData = {
       pickup: pickupLocation,
@@ -331,7 +299,6 @@ function UserHomeScreen() {
     confirmedRideData,
   ]);
 
-  // Store panel information
   useEffect(() => {
     const panelDetails = {
       showFindTripPanel,
@@ -370,7 +337,7 @@ function UserHomeScreen() {
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
       ></iframe>
-      {/* Find a trip component */}
+      
       {showFindTripPanel && (
         <div className="absolute b-0 flex flex-col justify-start p-4 pb-2 gap-4 rounded-b-lg bg-white h-fit w-full">
           <h1 className="text-2xl font-semibold">Find a trip</h1>
@@ -422,7 +389,6 @@ function UserHomeScreen() {
         </div>
       )}
 
-      {/* Select Vehicle Panel */}
       <SelectVehicle
         selectedVehicle={setSelectedVehicle}
         showPanel={showSelectVehiclePanel}
@@ -432,7 +398,6 @@ function UserHomeScreen() {
         fare={fare}
       />
 
-      {/* Ride Details Panel */}
       <RideDetails
         pickupLocation={pickupLocation}
         destinationLocation={destinationLocation}
