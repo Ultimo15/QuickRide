@@ -33,15 +33,6 @@ function NewRide({
           showPanel ? "bottom-0" : "-bottom-[60%]"
         } transition-all duration-500 absolute bg-white w-full rounded-t-xl p-4 pt-0`}
       >
-        {/* <div
-          onClick={() => {
-            setShowPanel(false);
-            showPreviousPanel(true);
-          }}
-          className="flex justify-center  py-2 pb-4 cursor-pointer"
-        >
-          <ChevronDown strokeWidth={2.5} className="text-zinc-300" />
-        </div> */}
         <div>
           <div className="flex justify-between items-center pb-4 pt-2">
             <div className="flex items-center gap-3">
@@ -64,7 +55,9 @@ function NewRide({
             </div>
 
             <div className="text-right">
-              <h1 className="font-semibold text-lg">₹ {rideData?.fare}</h1>
+              <h1 className="font-semibold text-lg">
+                $ {rideData?.fare?.toLocaleString('es-CO')}
+              </h1>
               <p className="text-xs text-gray-500 ">
                 {(Number(rideData?.distance?.toFixed(2)) / 1000)?.toFixed(1)} Km
               </p>
@@ -148,7 +141,7 @@ function NewRide({
               <CreditCard size={18} />
               <div>
                 <h1 className="text-lg font-semibold leading-6">
-                  ₹ {rideData.fare}
+                  $ {rideData.fare?.toLocaleString('es-CO')}
                 </h1>
                 <p className="text-xs text-gray-800 ">Cash</p>
               </div>
