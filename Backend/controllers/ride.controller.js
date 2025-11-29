@@ -4,6 +4,7 @@ const mapService = require("../services/map.service");
 const { sendMessageToSocketId } = require("../socket");
 const rideModel = require("../models/ride.model");
 const userModel = require("../models/user.model");
+const captainModel = require("../models/captain.model");
 
 module.exports.chatDetails = async (req, res) => {
   const { id } = req.params;
@@ -259,44 +260,62 @@ module.exports.cancelRide = async (req, res) => {
   const { rideId } = req.query;
 
   try {
-    console.log(
-      `⚠️ INTENTO DE CANCELACIÓN BLOQUEADO (Modo Pruebas) para el viaje: ${rideId}`
-    );
+    console.log(`🚫 Cancelando viaje: ${rideId}`);
 
-    // NOTA: Comentado para pruebas - el viaje sigue activo para que el conductor pueda aceptarlo
-    /*
-    const ride = await rideModel.findOneAndUpdate(
-      { _id: rideId },
-      {
-        status: "cancelled",
-      },
-      { new: true }
-    );
+    const ride = await rideModel
+      .findOneAndUpdate(
+        { _id: rideId },
+        { status: "cancelled" },
+        { new: true }
+      )
+      .populate("captain");
 
-    const pickupCoordinates = await mapService.getAddressCoordinate(ride.pickup);
-    
-    const captainsInRadius = await mapService.getCaptainsInTheRadius(
-      pickupCoordinates.ltd,
-      pickupCoordinates.lng,
-      100,
-      ride.vehicle
-    );
+    if (!ride) {
+      return res.status(404).json({ message: "Ride not found" });
+    }
 
-    captainsInRadius.map((captain) => {
-      sendMessageToSocketId(captain.socketId, {
-        event: "ride-cancelled",
-        data: ride,
+    // ✅ Si el viaje ya tenía conductor asignado, actualizar sus estadísticas
+    if (ride.captain) {
+      const captain = await captainModel.findById(ride.captain._id);
+      if (captain) {
+        // Incrementar viajes cancelados
+        captain.cancelledRides = (captain.cancelledRides || 0) + 1;
+        await captain.save();
+        console.log(
+          `📊 Captain ${captain._id} cancelledRides updated: ${captain.cancelledRides}`
+        );
+      }
+    }
+
+    // Notificar a conductores cercanos que el viaje fue cancelado
+    try {
+      const pickupCoordinates = await mapService.getAddressCoordinate(
+        ride.pickup
+      );
+
+      const captainsInRadius = await mapService.getCaptainsInTheRadius(
+        pickupCoordinates.ltd,
+        pickupCoordinates.lng,
+        100,
+        ride.vehicle
+      );
+
+      captainsInRadius.forEach((captain) => {
+        sendMessageToSocketId(captain.socketId, {
+          event: "ride-cancelled",
+          data: ride,
+        });
       });
-    });
+    } catch (error) {
+      console.error(
+        "Error notifying captains about cancellation:",
+        error.message
+      );
+    }
+
     return res.status(200).json(ride);
-    */
-
-    return res
-      .status(200)
-      .json({
-        message: "Cancelación ignorada para permitir aceptación del conductor",
-      });
   } catch (err) {
+    console.error("Error en cancelRide:", err);
     return res.status(500).json({ message: err.message });
   }
 };
