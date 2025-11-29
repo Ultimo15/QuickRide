@@ -89,4 +89,3 @@ function VerifyEmail({ user, role }) {
 };
 
 export default VerifyEmail
-```
