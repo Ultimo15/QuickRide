@@ -10,11 +10,10 @@ let io;
 function initializeSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: "*", // Permite conexiones desde cualquier frontend (Localhost, Vercel, Celular)
+      origin: "*",
       methods: ["GET", "POST"],
       credentials: true
     },
-    // 🔥 CRÍTICO PARA RENDER - Permite WebSocket y fallback a polling
     transports: ['websocket', 'polling']
   });
 
@@ -46,7 +45,6 @@ function initializeSocket(server) {
           await userModel.findByIdAndUpdate(userId, { socketId: socket.id });
           console.log(`✅ User ${userId} socketId updated to ${socket.id}`);
         } else if (userType === "captain") {
-          // Actualizamos socket y forzamos estado ACTIVE
           await captainModel.findByIdAndUpdate(userId, {
             socketId: socket.id,
             status: 'active'
@@ -59,7 +57,7 @@ function initializeSocket(server) {
     });
 
     // ============================================
-    // ACTUALIZACIÓN DE UBICACIÓN DEL CONDUCTOR
+    // ACTUALIZACIÓN DE UBICACIÓN DEL CONDUCTOR (ORIGINAL)
     // ============================================
     socket.on("update-location-captain", async (data) => {
       const { userId, location } = data;
@@ -76,9 +74,130 @@ function initializeSocket(server) {
             lng: location.lng
           }
         });
-        // console.log(`📍 Captain ${userId} location updated`);
       } catch (error) {
         console.error("Location update error:", error.message);
+      }
+    });
+
+    // 🆕 ============================================
+    // TRACKING EN TIEMPO REAL - UBICACIÓN DEL CONDUCTOR
+    // ============================================
+    socket.on("captain-location-update", async (data) => {
+      const { rideId, location, vehicleType } = data;
+
+      if (!rideId || !location || !location.ltd || !location.lng) {
+        console.warn("⚠️ Datos incompletos en captain-location-update");
+        return;
+      }
+
+      try {
+        // Buscar el viaje para obtener el socketId del usuario
+        const ride = await rideModel.findById(rideId).populate('user');
+        
+        if (!ride || !ride.user) {
+          console.warn(`⚠️ Viaje ${rideId} no encontrado o sin usuario`);
+          return;
+        }
+
+        // Actualizar ubicación del conductor en la base de datos
+        await captainModel.findByIdAndUpdate(ride.captain, {
+          location: {
+            ltd: location.ltd,
+            lng: location.lng
+          }
+        });
+
+        // Enviar ubicación al usuario específico
+        if (ride.user.socketId) {
+          io.to(ride.user.socketId).emit("captain-location-update", {
+            rideId,
+            location,
+            vehicleType: vehicleType || "car"
+          });
+          
+          console.log(`📍 Ubicación del conductor enviada al usuario ${ride.user._id}`);
+        } else {
+          console.warn(`⚠️ Usuario ${ride.user._id} no tiene socketId activo`);
+        }
+      } catch (error) {
+        console.error("Error en captain-location-update:", error.message);
+      }
+    });
+
+    // 🆕 ============================================
+    // ACTUALIZACIÓN DE ETA EN TIEMPO REAL
+    // ============================================
+    socket.on("ride-eta-update", async (data) => {
+      const { rideId, eta } = data;
+
+      if (!rideId || eta === undefined) {
+        console.warn("⚠️ Datos incompletos en ride-eta-update");
+        return;
+      }
+
+      try {
+        const ride = await rideModel.findById(rideId).populate('user');
+        
+        if (!ride || !ride.user) {
+          console.warn(`⚠️ Viaje ${rideId} no encontrado o sin usuario`);
+          return;
+        }
+
+        // Enviar ETA al usuario
+        if (ride.user.socketId) {
+          io.to(ride.user.socketId).emit("ride-eta-update", {
+            rideId,
+            eta
+          });
+          
+          console.log(`⏱️ ETA ${eta} min enviado al usuario ${ride.user._id}`);
+        }
+      } catch (error) {
+        console.error("Error en ride-eta-update:", error.message);
+      }
+    });
+
+    // 🆕 ============================================
+    // ACTUALIZACIÓN DE ESTADO DEL VIAJE
+    // ============================================
+    socket.on("ride-status-update", async (data) => {
+      const { rideId, status } = data;
+
+      if (!rideId || !status) {
+        console.warn("⚠️ Datos incompletos en ride-status-update");
+        return;
+      }
+
+      try {
+        const ride = await rideModel.findById(rideId).populate('user captain');
+        
+        if (!ride) {
+          console.warn(`⚠️ Viaje ${rideId} no encontrado`);
+          return;
+        }
+
+        // Actualizar estado en la base de datos
+        ride.status = status;
+        await ride.save();
+
+        // Notificar a ambos usuarios
+        if (ride.user && ride.user.socketId) {
+          io.to(ride.user.socketId).emit("ride-status-update", {
+            rideId,
+            status
+          });
+        }
+
+        if (ride.captain && ride.captain.socketId) {
+          io.to(ride.captain.socketId).emit("ride-status-update", {
+            rideId,
+            status
+          });
+        }
+
+        console.log(`🔄 Estado del viaje ${rideId} actualizado a: ${status}`);
+      } catch (error) {
+        console.error("Error en ride-status-update:", error.message);
       }
     });
 
@@ -96,7 +215,6 @@ function initializeSocket(server) {
     socket.on("message", async ({ rideId, msg, userType, time }) => {
       const date = moment().tz("Asia/Kolkata").format("MMM DD");
       
-      // Enviar mensaje a todos en la sala excepto al emisor
       socket.to(rideId).emit("receiveMessage", { msg, by: userType, time });
 
       try {
