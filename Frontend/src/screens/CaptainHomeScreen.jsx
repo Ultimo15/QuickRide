@@ -73,20 +73,19 @@ function CaptainHomeScreen() {
     JSON.parse(localStorage.getItem("showBtn")) || "accept"
   );
 
-  // 🔊 NUEVO: Estados para sonido y vibración
+  // 🔊 Estados para sonido y vibración
   const notificationSound = useRef(null);
+  const notificationInterval = useRef(null); // 🔊 NUEVO: Para el bucle de sonido
   const [soundEnabled, setSoundEnabled] = useState(
     localStorage.getItem("soundEnabled") !== "false"
   );
   const [audioReady, setAudioReady] = useState(false);
 
-  // 🔊 NUEVO: Inicializar sonido
+  // 🔊 Inicializar sonido
   useEffect(() => {
-    // Crear el objeto de audio con la ruta correcta (Sounds en mayúscula)
     notificationSound.current = new Audio("/Sounds/new-ride.mp3");
     notificationSound.current.volume = 0.7;
 
-    // Pre-cargar el audio cuando el usuario haga clic en cualquier lugar
     const enableAudio = () => {
       if (notificationSound.current && !audioReady) {
         notificationSound.current.load();
@@ -97,7 +96,6 @@ function CaptainHomeScreen() {
       }
     };
 
-    // Escuchar el primer clic o toque (móvil)
     document.addEventListener("click", enableAudio);
     document.addEventListener("touchstart", enableAudio);
 
@@ -108,31 +106,30 @@ function CaptainHomeScreen() {
         notificationSound.current.pause();
         notificationSound.current = null;
       }
+      // 🔊 NUEVO: Limpiar intervalo al desmontar
+      if (notificationInterval.current) {
+        clearInterval(notificationInterval.current);
+      }
     };
   }, [audioReady]);
 
-  // 🔊 NUEVO: Función para reproducir notificación
-  const playNotification = () => {
-    // Reproducir sonido
+  // 🔊 NUEVO: Función para reproducir sonido una vez
+  const playSoundOnce = () => {
     if (soundEnabled && notificationSound.current) {
+      notificationSound.current.currentTime = 0; // Reiniciar desde el inicio
       notificationSound.current
         .play()
         .then(() => {
-          Console.log("🔊 Sonido reproducido exitosamente");
+          Console.log("🔊 Sonido reproducido");
         })
         .catch((err) => {
           Console.log("⚠️ Error reproduciendo sonido:", err);
-          // Si falla, intentar recargar
-          if (!audioReady) {
-            notificationSound.current.load();
-          }
         });
     }
 
-    // Vibración en dispositivos móviles
+    // Vibración
     if ("vibrate" in navigator) {
       try {
-        // Patrón: vibra 300ms, pausa 100ms, vibra 300ms (urgente)
         navigator.vibrate([300, 100, 300]);
         Console.log("📳 Vibración activada");
       } catch (err) {
@@ -141,14 +138,40 @@ function CaptainHomeScreen() {
     }
   };
 
-  // 🔊 NUEVO: Toggle para activar/desactivar sonido
+  // 🔊 NUEVO: Iniciar bucle de notificación
+  const startNotificationLoop = () => {
+    // Limpiar cualquier intervalo previo
+    if (notificationInterval.current) {
+      clearInterval(notificationInterval.current);
+    }
+
+    // Reproducir inmediatamente
+    playSoundOnce();
+
+    // Repetir cada 3 segundos (puedes ajustar este valor)
+    notificationInterval.current = setInterval(() => {
+      playSoundOnce();
+    }, 3000); // 3000ms = 3 segundos
+
+    Console.log("🔁 Bucle de notificación iniciado");
+  };
+
+  // 🔊 NUEVO: Detener bucle de notificación
+  const stopNotificationLoop = () => {
+    if (notificationInterval.current) {
+      clearInterval(notificationInterval.current);
+      notificationInterval.current = null;
+      Console.log("⏹️ Bucle de notificación detenido");
+    }
+  };
+
+  // 🔊 Toggle para activar/desactivar sonido
   const toggleSound = () => {
     const newValue = !soundEnabled;
     setSoundEnabled(newValue);
     localStorage.setItem("soundEnabled", String(newValue));
     Console.log(`🔊 Sonido ${newValue ? "activado" : "desactivado"}`);
-    
-    // Reproducir sonido de prueba al activar
+
     if (newValue && notificationSound.current) {
       notificationSound.current.play().catch((err) => {
         Console.log("Error probando sonido:", err);
@@ -157,6 +180,9 @@ function CaptainHomeScreen() {
   };
 
   const acceptRide = async () => {
+    // 🔊 NUEVO: Detener sonido al aceptar
+    stopNotificationLoop();
+
     try {
       if (newRide._id != "") {
         setLoading(true);
@@ -285,6 +311,9 @@ function CaptainHomeScreen() {
   };
 
   const clearRideData = () => {
+    // 🔊 NUEVO: Detener sonido al cancelar
+    stopNotificationLoop();
+
     setShowBtn("accept");
     setLoading(false);
     setShowCaptainDetailsPanel(true);
@@ -307,8 +336,8 @@ function CaptainHomeScreen() {
     socket.on("new-ride", (data) => {
       Console.log("🚗 Nuevo viaje disponible:", data);
 
-      // 🔊 NUEVO: Reproducir notificación (sonido + vibración)
-      playNotification();
+      // 🔊 NUEVO: Iniciar bucle de notificación
+      startNotificationLoop();
 
       setShowBtn("accept");
       setNewRide(data);
@@ -317,10 +346,26 @@ function CaptainHomeScreen() {
 
     socket.on("ride-cancelled", (data) => {
       Console.log("❌ Viaje cancelado", data);
+      
+      // 🔊 NUEVO: Detener sonido al cancelar desde servidor
+      stopNotificationLoop();
+      
       updateLocation();
       clearRideData();
     });
+
+    return () => {
+      // 🔊 NUEVO: Limpiar al desmontar componente
+      stopNotificationLoop();
+    };
   }, [captain]);
+
+  // 🔊 NUEVO: Detener sonido cuando se cierra el panel manualmente
+  useEffect(() => {
+    if (!showNewRidePanel) {
+      stopNotificationLoop();
+    }
+  }, [showNewRidePanel]);
 
   useEffect(() => {
     localStorage.setItem("messages", JSON.stringify(messages));
@@ -423,10 +468,10 @@ function CaptainHomeScreen() {
       />
       <Sidebar />
 
-      {/* 🔊 NUEVO: Toggle de sonido flotante */}
+      {/* 🔊 NUEVO: Toggle de sonido reposicionado (más abajo) */}
       <button
         onClick={toggleSound}
-        className="absolute top-4 right-4 z-50 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all active:scale-95"
+        className="absolute top-20 right-4 z-50 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all active:scale-95"
         title={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
       >
         {soundEnabled ? (
