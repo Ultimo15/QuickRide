@@ -82,6 +82,95 @@ module.exports.sendVerificationEmail = asyncHandler(async (req, res) => {
   }
 });
 
+// ✅ NUEVO: Verificar email con token
+module.exports.verifyEmailToken = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  const { userType } = req.params;
+
+  if (!token) {
+    return res.status(400).json({ 
+      message: "Verification token is required" 
+    });
+  }
+
+  let payload;
+  try {
+    // Verificar el token JWT
+    payload = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Verificar que el token es para verificación de email
+    if (payload.purpose !== "email-verification") {
+      return res.status(400).json({ 
+        message: "Invalid verification token" 
+      });
+    }
+    
+    // Verificar que el userType coincide
+    if (payload.userType !== userType) {
+      return res.status(400).json({ 
+        message: "Invalid token for this user type" 
+      });
+    }
+    
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(400).json({ 
+        message: "Token Expired",
+        expired: true
+      });
+    }
+    return res.status(400).json({ 
+      message: "Invalid or corrupted token" 
+    });
+  }
+
+  // Buscar el usuario
+  let user;
+  let Model = userType === "user" ? userModel : captainModel;
+  
+  try {
+    user = await Model.findById(payload.id);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        message: "User not found" 
+      });
+    }
+
+    // Si ya está verificado
+    if (user.emailVerified) {
+      return res.status(200).json({ 
+        message: "Your email is already verified. You may continue using the application.",
+        alreadyVerified: true
+      });
+    }
+
+    // Marcar como verificado
+    user.emailVerified = true;
+    await user.save();
+
+    console.log("✅ Email verificado exitosamente para:", user.email);
+
+    return res.status(200).json({ 
+      message: "Email verified successfully! You can now login.",
+      verified: true,
+      user: {
+        email: user.email,
+        fullname: user.fullname,
+        emailVerified: true
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Error verificando email:", error.message);
+    
+    return res.status(500).json({ 
+      message: "An error occurred while verifying your email. Please try again.",
+      error: process.env.ENVIRONMENT === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // Forgot Password
 module.exports.forgotPassword = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
