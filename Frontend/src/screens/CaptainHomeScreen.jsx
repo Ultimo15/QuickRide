@@ -12,15 +12,15 @@ import { Alert } from "../components";
 const defaultRideData = {
   user: {
     fullname: {
-      firstname: "No",
-      lastname: "User",
+      firstname: "Sin",
+      lastname: "Usuario",
     },
     _id: "",
-    email: "example@gmail.com",
+    email: "ejemplo@gmail.com",
     rides: [],
   },
-  pickup: "Place, City, State, Country",
-  destination: "Place, City, State, Country",
+  pickup: "Lugar, Ciudad, Departamento, País",
+  destination: "Lugar, Ciudad, Departamento, País",
   fare: 0,
   vehicle: "car",
   status: "pending",
@@ -64,7 +64,7 @@ function CaptainHomeScreen() {
   );
   const [error, setError] = useState("");
 
-  // Panels
+  // Paneles
   const [showCaptainDetailsPanel, setShowCaptainDetailsPanel] = useState(true);
   const [showNewRidePanel, setShowNewRidePanel] = useState(
     JSON.parse(localStorage.getItem("showPanel")) || false
@@ -95,7 +95,7 @@ function CaptainHomeScreen() {
       }
     } catch (error) {
       setLoading(false);
-      showAlert('Some error occured', error.response.data.message, 'failure');
+      showAlert('Error', error.response.data.message, 'failure');
       Console.log(error.response);
       setTimeout(() => {
         clearRideData();
@@ -124,7 +124,7 @@ function CaptainHomeScreen() {
       }
     } catch (err) {
       setLoading(false);
-      setError("Invalid OTP");
+      setError("Código OTP inválido");
       Console.log(err);
     }
   };
@@ -165,7 +165,6 @@ function CaptainHomeScreen() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // Console.log(position);
           setRiderLocation({
             ltd: position.coords.latitude,
             lng: position.coords.longitude,
@@ -183,19 +182,19 @@ function CaptainHomeScreen() {
           });
         },
         (error) => {
-          console.error("Error fetching position:", error);
+          console.error("Error obteniendo ubicación:", error);
           switch (error.code) {
             case error.PERMISSION_DENIED:
-              console.error("User denied the request for Geolocation.");
+              console.error("El usuario denegó el permiso de geolocalización.");
               break;
             case error.POSITION_UNAVAILABLE:
-              console.error("Location information is unavailable.");
+              console.error("La información de ubicación no está disponible.");
               break;
             case error.TIMEOUT:
-              console.error("The request to get user location timed out.");
+              console.error("Se agotó el tiempo para obtener la ubicación.");
               break;
             default:
-              console.error("An unknown error occurred.");
+              console.error("Ocurrió un error desconocido.");
           }
         }
       );
@@ -219,19 +218,18 @@ function CaptainHomeScreen() {
         userType: "captain",
       });
 
-      // const locationInterval = setInterval(updateLocation, 10000);
-      updateLocation(); // IMP: Call this function to update location
+      updateLocation();
     }
 
     socket.on("new-ride", (data) => {
-      Console.log("New Ride available:", data);
+      Console.log("Nuevo viaje disponible:", data);
       setShowBtn("accept");
       setNewRide(data);
       setShowNewRidePanel(true);
     });
 
     socket.on("ride-cancelled", (data) => {
-      Console.log("Ride cancelled", data);
+      Console.log("Viaje cancelado", data);
       updateLocation();
       clearRideData();
     });
@@ -245,7 +243,6 @@ function CaptainHomeScreen() {
     socket.emit("join-room", newRide._id);
 
     socket.on("receiveMessage", async (msg) => {
-      // Console.log("Received message: ", msg);
       setMessages((prev) => [...prev, { msg, by: "other" }]);
     });
 
@@ -348,7 +345,7 @@ function CaptainHomeScreen() {
 
       {showCaptainDetailsPanel && (
         <div className="absolute bottom-0 flex flex-col justify-start p-4 gap-2 rounded-t-lg bg-white h-fit w-full">
-          {/* Driver details */}
+          {/* Detalles del conductor */}
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="my-2 select-none rounded-full w-10 h-10 bg-blue-400 mx-auto flex items-center justify-center">
@@ -370,19 +367,19 @@ function CaptainHomeScreen() {
             </div>
 
             <div className="text-right">
-              <p className="text-xs text-gray-500 ">Earnings</p>
-              <h1 className="font-semibold">₹ {earnings.today}</h1>
+              <p className="text-xs text-gray-500 ">Ganancias</p>
+              <h1 className="font-semibold">$ {earnings.today?.toLocaleString('es-CO')}</h1>
             </div>
           </div>
 
-          {/* Ride details */}
+          {/* Estadísticas de viajes */}
           <div className="flex justify-around items-center mt-2 py-4 rounded-lg bg-zinc-800">
             <div className="flex flex-col items-center text-white">
               <h1 className="mb-1 text-xl">{rides?.accepted}</h1>
               <p className="text-xs text-gray-400 text-center leading-3">
-                Rides
+                Viajes
                 <br />
-                Accepted
+                Aceptados
               </p>
             </div>
             <div className="flex flex-col items-center text-white">
@@ -390,20 +387,20 @@ function CaptainHomeScreen() {
               <p className="text-xs text-gray-400 text-center leading-3">
                 Km
                 <br />
-                Travelled
+                Recorridos
               </p>
             </div>
             <div className="flex flex-col items-center text-white">
               <h1 className="mb-1 text-xl">{rides?.cancelled}</h1>
               <p className="text-xs text-gray-400 text-center leading-3">
-                Rides
+                Viajes
                 <br />
-                Cancelled
+                Cancelados
               </p>
             </div>
           </div>
 
-          {/* Car details */}
+          {/* Detalles del vehículo */}
           <div className="flex justify-between border-2 items-center pl-3 py-2 rounded-lg">
             <div>
               <h1 className="text-lg font-semibold leading-6 tracking-tighter ">
@@ -422,7 +419,7 @@ function CaptainHomeScreen() {
                   ? "/car.png"
                   : `/${captain.vehicle.type}.webp`
               }
-              alt="Driver picture"
+              alt="Foto del vehículo"
             />
           </div>
         </div>
