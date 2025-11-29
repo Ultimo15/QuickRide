@@ -3,6 +3,7 @@ import Button from "./Button";
 import Heading from "./Heading";
 import Input from "./Input";
 import LocationSuggestions from "./LocationSuggestions";
+import LocationSearchInput from "./LocationSearchInput"; // 🔍 NUEVO
 import NewRide from "./NewRide";
 import RideDetails from "./RideDetails";
 import SelectVehicle from "./SelectVehicle";
@@ -16,6 +17,7 @@ export {
   Heading,
   Input,
   LocationSuggestions,
+  LocationSearchInput, // 🔍 NUEVO - Exportar el nuevo componente
   NewRide,
   RideDetails,
   SelectVehicle,
