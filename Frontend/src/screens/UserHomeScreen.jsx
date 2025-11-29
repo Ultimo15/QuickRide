@@ -54,10 +54,10 @@ function UserHomeScreen() {
               },
             }
           );
-          Console.log(response.data);
+          Console.log("✅ Sugerencias recibidas:", response.data);
           setLocationSuggestion(response.data);
         } catch (error) {
-          Console.error(error);
+          Console.error("❌ Error al obtener sugerencias:", error);
         }
       }
     }, 700),
@@ -346,14 +346,14 @@ function UserHomeScreen() {
       ></iframe>
 
       {showFindTripPanel && (
-        <div className="absolute b-0 flex flex-col justify-start p-4 pb-2 gap-4 rounded-b-lg bg-white h-fit w-full">
+        <div className="absolute bottom-0 flex flex-col justify-start p-4 pb-2 gap-4 rounded-t-lg bg-white w-full z-10 max-h-[80vh]">
           <h1 className="text-2xl font-semibold">Buscar viaje</h1>
           <div className="flex items-center relative w-full h-fit">
             <div className="h-3/5 w-[3px] flex flex-col items-center justify-between bg-black rounded-full absolute mx-5">
               <div className="w-2 h-2 rounded-full border-[3px] bg-white border-black"></div>
               <div className="w-2 h-2 rounded-sm border-[3px] bg-white border-black"></div>
             </div>
-            <div>
+            <div className="w-full">
               <input
                 id="pickup"
                 placeholder="Punto de recogida"
@@ -372,6 +372,20 @@ function UserHomeScreen() {
               />
             </div>
           </div>
+
+          {/* ✅ CORRECCIÓN: Sugerencias FUERA del scroll, con altura fija */}
+          {locationSuggestion.length > 0 && (
+            <div className="w-full max-h-60 overflow-y-auto">
+              <LocationSuggestions
+                suggestions={locationSuggestion}
+                setSuggestions={setLocationSuggestion}
+                setPickupLocation={setPickupLocation}
+                setDestinationLocation={setDestinationLocation}
+                input={selectedInput}
+              />
+            </div>
+          )}
+
           {pickupLocation.length > 2 && destinationLocation.length > 2 && (
             <Button
               title={"Buscar"}
@@ -381,18 +395,6 @@ function UserHomeScreen() {
               }}
             />
           )}
-
-          <div className="w-full h-full overflow-y-scroll ">
-            {locationSuggestion.length > 0 && (
-              <LocationSuggestions
-                suggestions={locationSuggestion}
-                setSuggestions={setLocationSuggestion}
-                setPickupLocation={setPickupLocation}
-                setDestinationLocation={setDestinationLocation}
-                input={selectedInput}
-              />
-            )}
-          </div>
         </div>
       )}
 
