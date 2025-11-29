@@ -315,7 +315,7 @@ function UserHomeScreen() {
     });
 
     socket.on("ride-ended", () => {
-      Console.log("Viaje finalizado");
+      Console.log("✅ Viaje finalizado - Limpiando estados");
       
       // 🆕 Limpiar estados de tracking
       setCaptainLocation(null);
@@ -323,12 +323,23 @@ function UserHomeScreen() {
       setEta(null);
       setRideStatus("");
       
+      // Limpiar paneles
       setShowRideDetailsPanel(false);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(true);
+      
+      // Limpiar datos del viaje
       setDefaults();
+      
+      // Limpiar localStorage
       localStorage.removeItem("rideDetails");
       localStorage.removeItem("panelDetails");
+      localStorage.removeItem("messages");
+      
+      // 🆕 IMPORTANTE: Actualizar ubicación del mapa al estado inicial
+      updateLocation();
+      
+      Console.log("✅ Estados limpiados correctamente");
     });
 
     return () => {
