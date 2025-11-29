@@ -31,7 +31,6 @@ function UserHomeScreen() {
   const [destinationLocation, setDestinationLocation] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState("car");
   const [fare, setFare] = useState({
-    auto: 0,
     car: 0,
     bike: 0,
   });
@@ -74,9 +73,8 @@ function UserHomeScreen() {
       setDestinationLocation(value);
     }
 
-    if (import.meta.env.VITE_ENVIRONMENT === "production") {
-      handleLocationChange(value, token);
-    }
+    // ✅ SIEMPRE HABILITAR SUGERENCIAS (quitar el if de production)
+    handleLocationChange(value, token);
 
     if (e.target.value.length < 3) {
       setLocationSuggestion([]);
@@ -108,6 +106,7 @@ function UserHomeScreen() {
     } catch (error) {
       Console.log(error);
       setLoading(false);
+      alert("Error al calcular tarifa. Verifica que las direcciones estén en nuestra zona de operación.");
     }
   };
 
@@ -140,46 +139,51 @@ function UserHomeScreen() {
       setLoading(false);
       setRideCreated(true);
 
-      // Abrir siempre el panel de detalles cuando se crea el viaje
       setShowRideDetailsPanel(true);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(false);
-
-      // Timeout desactivado por ahora
-      // rideTimeout.current = setTimeout(() => {
-      //   cancelRide();
-      // }, import.meta.env.VITE_RIDE_TIMEOUT || 300000);
     } catch (error) {
       Console.log(error);
       setLoading(false);
+      alert("Error al crear viaje. Verifica que las direcciones estén en nuestra zona de operación.");
     }
   };
 
+  // ✅ FUNCIÓN CANCELRIDE CORREGIDA
   const cancelRide = async () => {
     const rideDetails = JSON.parse(localStorage.getItem("rideDetails"));
+    
+    if (!rideDetails || !rideDetails._id) {
+      Console.error("No ride details found");
+      return;
+    }
+
     try {
       setLoading(true);
-      await axios.get(
-        `${import.meta.env.VITE_SERVER_URL}/ride/cancel?rideId=${
-          rideDetails._id || rideDetails.confirmedRideData._id
-        }`,
+      
+      const response = await axios.get(
+        `${import.meta.env.VITE_SERVER_URL}/ride/cancel?rideId=${rideDetails._id}`,
         {
           headers: { token: token },
         }
       );
+      
+      Console.log("✅ Viaje cancelado:", response.data);
+      
+      // ✅ LIMPIAR TODO Y VOLVER AL INICIO
+      setShowRideDetailsPanel(false);
+      setShowSelectVehiclePanel(false);
+      setShowFindTripPanel(true);
+      setDefaults();
+      localStorage.removeItem("rideDetails");
+      localStorage.removeItem("panelDetails");
+      
       setLoading(false);
       updateLocation();
-
-      // Si quieres que al cancelar se cierre todo, descomenta este bloque:
-      // setShowRideDetailsPanel(false);
-      // setShowSelectVehiclePanel(false);
-      // setShowFindTripPanel(true);
-      // setDefaults();
-      // localStorage.removeItem("rideDetails");
-      // localStorage.removeItem("panelDetails");
     } catch (error) {
-      Console.log(error);
+      Console.error("Error cancelando viaje:", error);
       setLoading(false);
+      alert("Error al cancelar el viaje. Por favor intenta de nuevo.");
     }
   };
 
@@ -188,7 +192,6 @@ function UserHomeScreen() {
     setDestinationLocation("");
     setSelectedVehicle("car");
     setFare({
-      auto: 0,
       car: 0,
       bike: 0,
     });
@@ -217,6 +220,11 @@ function UserHomeScreen() {
 
   // Socket Events
   useEffect(() => {
+    if (!socket) {
+      Console.warn("⚠️ Socket no inicializado");
+      return;
+    }
+
     if (user._id) {
       socket.emit("join", {
         userId: user._id,
@@ -230,7 +238,7 @@ function UserHomeScreen() {
       Console.log("Ride Confirmed", data);
 
       setConfirmedRideData(data);
-      // Aseguramos que el panel correcto esté visible
+      setRideCreated(false);
       setShowRideDetailsPanel(true);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(false);
@@ -252,6 +260,12 @@ function UserHomeScreen() {
       localStorage.removeItem("rideDetails");
       localStorage.removeItem("panelDetails");
     });
+
+    return () => {
+      socket.off("ride-confirmed");
+      socket.off("ride-started");
+      socket.off("ride-ended");
+    };
   }, [user, socket]);
 
   // Persistencia
