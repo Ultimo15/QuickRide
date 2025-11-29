@@ -8,13 +8,11 @@ import Console from "../utils/console";
 function UserLogin() {
   const [responseError, setResponseError] = useState("");
   const [loading, setLoading] = useState(false);
-
   const {
     handleSubmit,
     register,
     formState: { errors },
   } = useForm();
-
   const navigation = useNavigate();
 
   const loginUser = async (data) => {
@@ -46,20 +44,21 @@ function UserLogin() {
       setResponseError("");
     }, 5000);
   }, [responseError]);
+
   return (
     <div className="w-full h-dvh flex flex-col justify-between p-4 pt-6">
       <div>
-        <Heading title={"User Login🧑🏻"} />
+        <Heading title={"Iniciar Sesión 🧑🏻"} />
         <form onSubmit={handleSubmit(loginUser)}>
           <Input
-            label={"Email"}
+            label={"Correo electrónico"}
             type={"email"}
             name={"email"}
             register={register}
             error={errors.email}
           />
           <Input
-            label={"Password"}
+            label={"Contraseña"}
             type={"password"}
             name={"password"}
             register={register}
@@ -71,30 +70,29 @@ function UserLogin() {
             </p>
           )}
           <Link to="/user/forgot-password" className="text-sm mb-2 inline-block">
-            Forgot Password?
+            ¿Olvidaste tu contraseña?
           </Link>
-          <Button title={"Login"} loading={loading} type="submit" />
+          <Button title={"Iniciar Sesión"} loading={loading} type="submit" />
         </form>
         <p className="text-sm font-normal text-center mt-4">
-          Don't have an account?{" "}
+          ¿No tienes cuenta?{" "}
           <Link to={"/signup"} className="font-semibold">
-            Sign up
+            Regístrate
           </Link>
         </p>
-
       </div>
       <div>
         <Button
           type={"link"}
           path={"/captain/login"}
-          title={"Login as Captain"}
+          title={"Ingresar como Conductor"}
           classes={"bg-orange-500"}
         />
         <p className="text-xs font-normal text-center self-end mt-6">
-          This site is protected by reCAPTCHA and the Google{" "}
-          <span className="font-semibold underline">Privacy Policy</span> and{" "}
-          <span className="font-semibold underline">Terms of Service</span>{" "}
-          apply.
+          Este sitio está protegido por reCAPTCHA y se aplican la{" "}
+          <span className="font-semibold underline">Política de Privacidad</span> y los{" "}
+          <span className="font-semibold underline">Términos de Servicio</span>{" "}
+          de Google.
         </p>
       </div>
     </div>
