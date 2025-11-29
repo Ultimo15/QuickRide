@@ -1,18 +1,6 @@
 import { MapPin } from "lucide-react";
 import Console from "../utils/console";
 
-const locationSuggestions = [
-  { name: "Central Park", location: "New York, NY, USA" },
-  { name: "Eiffel Tower", location: "Paris, France" },
-  { name: "Marina Bay Sands", location: "Singapore" },
-  { name: "Burj Khalifa", location: "Dubai, UAE" },
-  { name: "Sydney Opera House", location: "Sydney, Australia" },
-  { name: "Golden Gate Bridge", location: "San Francisco, CA, USA" },
-  { name: "Taj Mahal", location: "Agra, India" },
-  { name: "Great Wall", location: "Beijing, China" },
-  { name: "Niagara Falls", location: "Ontario, Canada" },
-  { name: "Colosseum", location: "Rome, Italy" },
-];
 function LocationSuggestions({
   suggestions = [],
   setSuggestions,
