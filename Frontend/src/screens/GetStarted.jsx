@@ -34,7 +34,7 @@ function GetStarted() {
       >
         <h1 className="text-2xl font-semibold">Pide tu viaje ahora con Rapidito</h1>
         <Button
-          title={"Continue"}
+          title={"Continuar"}
           path={"/login"}
           type={"link"}
           icon={<ArrowRight />}
