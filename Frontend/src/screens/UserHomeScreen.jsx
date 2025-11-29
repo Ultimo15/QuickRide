@@ -14,7 +14,7 @@ import { SocketDataContext } from "../contexts/SocketContext";
 import Console from "../utils/console";
 
 function UserHomeScreen() {
-  const token = localStorage.getItem("token"); // this token is in use
+  const token = localStorage.getItem("token");
   const { socket } = useContext(SocketDataContext);
   const { user } = useUser();
   const [messages, setMessages] = useState(
@@ -48,8 +48,7 @@ function UserHomeScreen() {
       if (inputValue.length >= 3) {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_SERVER_URL
-            }/map/get-suggestions?input=${inputValue}`,
+            `${import.meta.env.VITE_SERVER_URL}/map/get-suggestions?input=${inputValue}`,
             {
               headers: {
                 token: token,
@@ -69,9 +68,9 @@ function UserHomeScreen() {
   const onChangeHandler = (e) => {
     setSelectedInput(e.target.id);
     const value = e.target.value;
-    if (e.target.id == "pickup") {
+    if (e.target.id === "pickup") {
       setPickupLocation(value);
-    } else if (e.target.id == "destination") {
+    } else if (e.target.id === "destination") {
       setDestinationLocation(value);
     }
 
@@ -92,8 +91,7 @@ function UserHomeScreen() {
         `https://www.google.com/maps?q=${pickupLocation} to ${destinationLocation}&output=embed`
       );
       const response = await axios.get(
-        `${import.meta.env.VITE_SERVER_URL
-        }/ride/get-fare?pickup=${pickupLocation}&destination=${destinationLocation}`,
+        `${import.meta.env.VITE_SERVER_URL}/ride/get-fare?pickup=${pickupLocation}&destination=${destinationLocation}`,
         {
           headers: {
             token: token,
@@ -142,24 +140,28 @@ function UserHomeScreen() {
       setLoading(false);
       setRideCreated(true);
 
-      // Timeout COMENTADO para evitar cancelaciones automáticas
-      /* rideTimeout.current = setTimeout(() => {
-        cancelRide();
-      }, import.meta.env.VITE_RIDE_TIMEOUT || 300000); */
-      
+      // Abrir siempre el panel de detalles cuando se crea el viaje
+      setShowRideDetailsPanel(true);
+      setShowSelectVehiclePanel(false);
+      setShowFindTripPanel(false);
+
+      // Timeout desactivado por ahora
+      // rideTimeout.current = setTimeout(() => {
+      //   cancelRide();
+      // }, import.meta.env.VITE_RIDE_TIMEOUT || 300000);
     } catch (error) {
       Console.log(error);
       setLoading(false);
     }
   };
 
-  // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
   const cancelRide = async () => {
     const rideDetails = JSON.parse(localStorage.getItem("rideDetails"));
     try {
       setLoading(true);
       await axios.get(
-        `${import.meta.env.VITE_SERVER_URL}/ride/cancel?rideId=${rideDetails._id || rideDetails.confirmedRideData._id
+        `${import.meta.env.VITE_SERVER_URL}/ride/cancel?rideId=${
+          rideDetails._id || rideDetails.confirmedRideData._id
         }`,
         {
           headers: { token: token },
@@ -168,26 +170,19 @@ function UserHomeScreen() {
       setLoading(false);
       updateLocation();
 
-      // HE COMENTADO ESTAS LÍNEAS. 
-      // Ahora, aunque se llame a cancelar (por error), ¡LA PANTALLA NO SE CERRARÁ!
-      // Esto te permitirá ver cuando el conductor acepte.
-      
+      // Si quieres que al cancelar se cierre todo, descomenta este bloque:
       // setShowRideDetailsPanel(false);
       // setShowSelectVehiclePanel(false);
       // setShowFindTripPanel(true);
       // setDefaults();
       // localStorage.removeItem("rideDetails");
       // localStorage.removeItem("panelDetails");
-      
-      Console.log("Cancelación ejecutada pero UI mantenida abierta para pruebas");
-
     } catch (error) {
       Console.log(error);
       setLoading(false);
     }
   };
 
-  // Set ride details to default values
   const setDefaults = () => {
     setPickupLocation("");
     setDestinationLocation("");
@@ -201,7 +196,6 @@ function UserHomeScreen() {
     setRideCreated(false);
   };
 
-  // Update Location
   const updateLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -217,7 +211,6 @@ function UserHomeScreen() {
     }
   };
 
-  // Update Location
   useEffect(() => {
     updateLocation();
   }, []);
@@ -235,10 +228,12 @@ function UserHomeScreen() {
       Console.log("Clearing Timeout", rideTimeout);
       clearTimeout(rideTimeout.current);
       Console.log("Ride Confirmed", data);
-      
-      // Actualizamos los datos del viaje confirmado
+
       setConfirmedRideData(data);
-      // Esto debería actualizar el componente RideDetails automáticamente
+      // Aseguramos que el panel correcto esté visible
+      setShowRideDetailsPanel(true);
+      setShowSelectVehiclePanel(false);
+      setShowFindTripPanel(false);
     });
 
     socket.on("ride-started", (data) => {
@@ -248,9 +243,8 @@ function UserHomeScreen() {
       );
     });
 
-    socket.on("ride-ended", (data) => {
+    socket.on("ride-ended", () => {
       Console.log("Ride Ended");
-      // Aquí SÍ permitimos que se cierre porque el viaje terminó legalmente
       setShowRideDetailsPanel(false);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(true);
@@ -258,9 +252,9 @@ function UserHomeScreen() {
       localStorage.removeItem("rideDetails");
       localStorage.removeItem("panelDetails");
     });
-  }, [user]);
+  }, [user, socket]);
 
-  // Resto de useEffects para persistencia...
+  // Persistencia
   useEffect(() => {
     const storedRideDetails = localStorage.getItem("rideDetails");
     const storedPanelDetails = localStorage.getItem("panelDetails");
@@ -313,7 +307,9 @@ function UserHomeScreen() {
   }, [messages]);
 
   useEffect(() => {
-    socket.emit("join-room", confirmedRideData?._id);
+    if (!confirmedRideData?._id) return;
+
+    socket.emit("join-room", confirmedRideData._id);
 
     socket.on("receiveMessage", (msg) => {
       setMessages((prev) => [...prev, { msg, by: "other" }]);
@@ -322,7 +318,7 @@ function UserHomeScreen() {
     return () => {
       socket.off("receiveMessage");
     };
-  }, [confirmedRideData]);
+  }, [confirmedRideData, socket]);
 
   return (
     <div
@@ -337,14 +333,14 @@ function UserHomeScreen() {
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
       ></iframe>
-      
+
       {showFindTripPanel && (
         <div className="absolute b-0 flex flex-col justify-start p-4 pb-2 gap-4 rounded-b-lg bg-white h-fit w-full">
           <h1 className="text-2xl font-semibold">Find a trip</h1>
           <div className="flex items-center relative w-full h-fit">
             <div className="h-3/5 w-[3px] flex flex-col items-center justify-between bg-black rounded-full absolute mx-5">
-              <div className="w-2 h-2 rounded-full border-[3px]  bg-white border-black"></div>
-              <div className="w-2 h-2 rounded-sm border-[3px]  bg-white border-black"></div>
+              <div className="w-2 h-2 rounded-full border-[3px] bg-white border-black"></div>
+              <div className="w-2 h-2 rounded-sm border-[3px] bg-white border-black"></div>
             </div>
             <div>
               <input
