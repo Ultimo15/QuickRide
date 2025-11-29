@@ -2,7 +2,7 @@ const asyncHandler = require("express-async-handler");
 const { validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
 
-// const { sendMail } = require("../services/mail.service"); // YA NO LO NECESITAMOS
+const { sendMail } = require("../services/mail.service"); // ✅ REACTIVADO
 let { fillTemplate } = require("../templates/mail.template");
 
 const captainModel = require("../models/captain.model");
@@ -21,15 +21,19 @@ module.exports.sendVerificationEmail = asyncHandler(async (req, res) => {
   } else if (req.userType === "captain") {
     user = req.captain;
   } else {
-    return res.status(400).json({ message: "The email verification link is invalid because of incorrect user type" });
+    return res.status(400).json({ 
+      message: "The email verification link is invalid because of incorrect user type" 
+    });
   }
 
   // Si ya está verificado, avisamos
   if (user.emailVerified) {
-    return res.status(400).json({ message: "Your email is already verified. You may continue using the application." });
+    return res.status(400).json({ 
+      message: "Your email is already verified. You may continue using the application." 
+    });
   }
 
-  // Generamos el token igual (por si acaso el frontend lo espera)
+  // Generamos el token
   const token = jwt.sign(
     { id: user._id, userType: req.userType, purpose: "email-verification" },
     process.env.JWT_SECRET,
@@ -39,26 +43,31 @@ module.exports.sendVerificationEmail = asyncHandler(async (req, res) => {
   );
 
   try {
-    // Construimos el link solo para mostrarlo en consola (Logs de Render)
+    // Construimos el link de verificación
     const verification_link = `${process.env.CLIENT_URL}/${req.userType}/verify-email?token=${token}`;
     
-    console.log("----------------------------------------------------");
-    console.log("🚨 BYPASS ACTIVADO: Correo NO enviado para evitar error.");
-    console.log("🔗 Link generado (copiar si es necesario):", verification_link);
-    console.log("✅ ACCIÓN AUTOMÁTICA: Verificando usuario en Base de Datos...");
-    console.log("----------------------------------------------------");
+    console.log("📧 Preparando correo de verificación para:", user.email);
+    console.log("🔗 Link de verificación:", verification_link);
 
-    // 🔥 LA MAGIA: AUTO-VERIFICAMOS AL USUARIO AQUÍ MISMO 🔥
-    // Esto hace que no sea necesario que el usuario de click en ningún lado.
-    if (req.userType === "user") {
-        await userModel.findByIdAndUpdate(user._id, { emailVerified: true });
-    } else if (req.userType === "captain") {
-        await captainModel.findByIdAndUpdate(user._id, { emailVerified: true });
-    }
+    // ✅ Llenamos el template del correo
+    const emailHtml = fillTemplate({
+      name: user.fullname.firstname,
+      link: verification_link,
+      type: "verification"
+    });
 
-    // Respondemos al frontend como si todo hubiera salido bien
+    // ✅ ENVIAMOS EL CORREO
+    await sendMail(
+      user.email,
+      "Verify Your Email - QuickRide",
+      emailHtml
+    );
+
+    console.log("✅ Correo de verificación enviado exitosamente a:", user.email);
+
+    // Respondemos al frontend
     return res.status(200).json({
-      message: "Verification bypassed successfully. Account is now active.",
+      message: "Verification email sent successfully. Please check your inbox.",
       user: {
         email: user.email,
         fullname: user.fullname,
@@ -66,10 +75,13 @@ module.exports.sendVerificationEmail = asyncHandler(async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error in bypass:", error);
-    return res
-      .status(500)
-      .json({ message: "Failed to process verification bypass" });
+    console.error("❌ Error enviando correo de verificación:", error);
+    console.error("📋 Detalles completos:", error.message);
+    
+    return res.status(500).json({ 
+      message: "Failed to send verification email. Please try again later.",
+      error: error.message 
+    });
   }
 });
 
@@ -88,45 +100,89 @@ module.exports.forgotPassword = asyncHandler(async (req, res) => {
   } else if (userType === "captain") {
     user = await captainModel.findOne({ email });
   }
-  if (!user) return res.status(404).json({ message: "User not found. Please check your credentials and try again" });
+  
+  if (!user) {
+    return res.status(404).json({ 
+      message: "User not found. Please check your credentials and try again" 
+    });
+  }
 
   const token = jwt.sign(
-    { id: user._id, type: "user" },
+    { id: user._id, userType: userType },
     process.env.JWT_SECRET,
     { expiresIn: "15m" }
   );
 
   const resetLink = `${process.env.CLIENT_URL}/${userType}/reset-password?token=${token}`;
 
-  // EN LUGAR DE ENVIAR EL CORREO, LO MOSTRAMOS EN LA CONSOLA DE RENDER
-  console.log("----------------------------------------------------");
-  console.log("🔑 PASSWORD RESET BYPASS");
-  console.log("👤 Usuario:", email);
-  console.log("🔗 USA ESTE LINK PARA CAMBIAR PASSWORD:", resetLink);
-  console.log("----------------------------------------------------");
+  try {
+    console.log("🔑 Preparando correo de reset password para:", email);
+    console.log("🔗 Link de reset:", resetLink);
 
-  // Respondemos éxito
-  res.status(200).json({ message: "Reset password email sent successfully (Check server logs for link)" });
+    // ✅ Llenamos el template del correo
+    const emailHtml = fillTemplate({
+      name: user.fullname.firstname,
+      link: resetLink,
+      type: "reset-password"
+    });
+
+    // ✅ ENVIAMOS EL CORREO
+    await sendMail(
+      user.email,
+      "Reset Your Password - QuickRide",
+      emailHtml
+    );
+
+    console.log("✅ Correo de reset password enviado exitosamente a:", email);
+
+    res.status(200).json({ 
+      message: "Password reset email sent successfully. Please check your inbox." 
+    });
+
+  } catch (error) {
+    console.error("❌ Error enviando correo de reset password:", error);
+    console.error("📋 Detalles completos:", error.message);
+    
+    return res.status(500).json({ 
+      message: "Failed to send reset password email. Please try again later.",
+      error: error.message 
+    });
+  }
 });
 
-// Reset Password (Este se queda igual porque no envía correos, solo cambia la password)
 module.exports.resetPassword = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json(errors.array());
+  if (!errors.isEmpty()) {
+    return res.status(400).json(errors.array());
+  }
 
   const { token, password } = req.body;
+  const { userType } = req.params;
+
   let payload;
   try {
     payload = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
-    return res.status(400).json({ message: "Invalid or expired token" });
+    return res.status(400).json({ 
+      message: "Invalid or expired token. Please request a new password reset." 
+    });
   }
 
-  const user = await userModel.findById(payload.id);
-  if (!user) return res.status(404).json({ message: "User not found" });
+  let user;
+  if (userType === "user") {
+    user = await userModel.findById(payload.id);
+  } else if (userType === "captain") {
+    user = await captainModel.findById(payload.id);
+  }
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
 
   user.password = await userModel.hashPassword(password);
   await user.save();
+
+  console.log("✅ Password actualizada exitosamente para:", user.email);
 
   res.status(200).json({ message: "Password reset successfully" });
 });
