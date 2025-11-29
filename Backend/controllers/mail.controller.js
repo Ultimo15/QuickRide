@@ -2,12 +2,13 @@ const asyncHandler = require("express-async-handler");
 const { validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
 
-const { sendMail } = require("../services/mail.service"); // ✅ REACTIVADO
+const { sendMail } = require("../services/mail.service");
 let { fillTemplate } = require("../templates/mail.template");
 
 const captainModel = require("../models/captain.model");
 const userModel = require("../models/user.model");
 
+// Enviar correo de verificación
 module.exports.sendVerificationEmail = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -26,37 +27,35 @@ module.exports.sendVerificationEmail = asyncHandler(async (req, res) => {
     });
   }
 
-  // Si ya está verificado, avisamos
+  // Si ya está verificado
   if (user.emailVerified) {
-    return res.status(400).json({ 
-      message: "Your email is already verified. You may continue using the application." 
+    return res.status(200).json({ 
+      message: "Your email is already verified. You may continue using the application.",
+      alreadyVerified: true
     });
   }
 
-  // Generamos el token
+  // Generar token JWT
   const token = jwt.sign(
     { id: user._id, userType: req.userType, purpose: "email-verification" },
     process.env.JWT_SECRET,
-    {
-      expiresIn: "15m",
-    }
+    { expiresIn: "15m" }
   );
 
   try {
-    // Construimos el link de verificación
+    // Construir link de verificación
     const verification_link = `${process.env.CLIENT_URL}/${req.userType}/verify-email?token=${token}`;
     
-    console.log("📧 Preparando correo de verificación para:", user.email);
-    console.log("🔗 Link de verificación:", verification_link);
+    console.log("🔗 Link de verificación generado:", verification_link);
 
-    // ✅ Llenamos el template del correo
+    // Llenar el template del correo
     const emailHtml = fillTemplate({
-      name: user.fullname.firstname,
+      name: user.fullname.firstname || user.fullname,
       link: verification_link,
       type: "verification"
     });
 
-    // ✅ ENVIAMOS EL CORREO
+    // 📧 ENVIAR EL CORREO
     await sendMail(
       user.email,
       "Verify Your Email - QuickRide",
@@ -65,7 +64,6 @@ module.exports.sendVerificationEmail = asyncHandler(async (req, res) => {
 
     console.log("✅ Correo de verificación enviado exitosamente a:", user.email);
 
-    // Respondemos al frontend
     return res.status(200).json({
       message: "Verification email sent successfully. Please check your inbox.",
       user: {
@@ -75,16 +73,16 @@ module.exports.sendVerificationEmail = asyncHandler(async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Error enviando correo de verificación:", error);
-    console.error("📋 Detalles completos:", error.message);
+    console.error("❌ Error enviando correo de verificación:", error.message);
     
     return res.status(500).json({ 
       message: "Failed to send verification email. Please try again later.",
-      error: error.message 
+      error: process.env.ENVIRONMENT === 'development' ? error.message : undefined
     });
   }
 });
 
+// Forgot Password
 module.exports.forgotPassword = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -116,40 +114,39 @@ module.exports.forgotPassword = asyncHandler(async (req, res) => {
   const resetLink = `${process.env.CLIENT_URL}/${userType}/reset-password?token=${token}`;
 
   try {
-    console.log("🔑 Preparando correo de reset password para:", email);
-    console.log("🔗 Link de reset:", resetLink);
+    console.log("🔗 Link de reset password generado:", resetLink);
 
-    // ✅ Llenamos el template del correo
+    // Llenar template
     const emailHtml = fillTemplate({
-      name: user.fullname.firstname,
+      name: user.fullname.firstname || user.fullname,
       link: resetLink,
       type: "reset-password"
     });
 
-    // ✅ ENVIAMOS EL CORREO
+    // 📧 ENVIAR EL CORREO
     await sendMail(
       user.email,
       "Reset Your Password - QuickRide",
       emailHtml
     );
 
-    console.log("✅ Correo de reset password enviado exitosamente a:", email);
+    console.log("✅ Correo de reset password enviado a:", email);
 
     res.status(200).json({ 
       message: "Password reset email sent successfully. Please check your inbox." 
     });
 
   } catch (error) {
-    console.error("❌ Error enviando correo de reset password:", error);
-    console.error("📋 Detalles completos:", error.message);
+    console.error("❌ Error enviando correo de reset:", error.message);
     
     return res.status(500).json({ 
       message: "Failed to send reset password email. Please try again later.",
-      error: error.message 
+      error: process.env.ENVIRONMENT === 'development' ? error.message : undefined
     });
   }
 });
 
+// Reset Password
 module.exports.resetPassword = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -169,20 +166,19 @@ module.exports.resetPassword = asyncHandler(async (req, res) => {
   }
 
   let user;
-  if (userType === "user") {
-    user = await userModel.findById(payload.id);
-  } else if (userType === "captain") {
-    user = await captainModel.findById(payload.id);
-  }
+  let Model = userType === "user" ? userModel : captainModel;
+  user = await Model.findById(payload.id);
 
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
 
-  user.password = await userModel.hashPassword(password);
+  user.password = await Model.hashPassword(password);
   await user.save();
 
-  console.log("✅ Password actualizada exitosamente para:", user.email);
+  console.log("✅ Password actualizada para:", user.email);
 
-  res.status(200).json({ message: "Password reset successfully" });
+  res.status(200).json({ 
+    message: "Password reset successfully. You can now login with your new password." 
+  });
 });
