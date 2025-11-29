@@ -90,36 +90,3 @@ function VerifyEmail({ user, role }) {
 
 export default VerifyEmail
 ```
-
----
-
-## ✅ **Traducciones aplicadas:**
-
-| Original (Inglés) | Traducido (Español Latino) |
-|-------------------|----------------------------|
-| Verification email sent successfully! | ¡Correo de verificación enviado! |
-| Please check your inbox... | Por favor revisa tu bandeja de entrada... |
-| Some error occured | Ocurrió un error |
-| Go Back | Regresar |
-| Verify Your Email | Verifica tu Correo |
-| Send Verification Email | Enviar Correo de Verificación |
-| Wait | Espera |
-| Sending Email... | Enviando correo... |
-| Hi | Hola |
-| Click on the Send Verification... | Haz clic en el botón Enviar... |
-
----
-
-## ✅ **Correcciones aplicadas:**
-
-- ✅ **Template literal corregido**: `` `Hola ${user?.fullname?.firstname}` `` arreglado
-- ✅ **Mensajes de alerta traducidos**: Success y failure en español
-- ✅ **Textos de botón dinámicos**: "Enviar" / "Espera Xs"
-- ✅ **Alt de imagen traducido**: "Verificar Correo"
-- ✅ **Sintaxis validada**: Sin errores de compilación
-
----
-
-## 📍 **Dónde guardarlo:**
-```
-Frontend/src/components/VerifyEmail.jsx
