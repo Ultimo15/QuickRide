@@ -1,45 +1,40 @@
-const { Resend } = require('resend');
+const sgMail = require('@sendgrid/mail');
 
-// Inicializar Resend con la API Key
-const resend = new Resend(process.env.RESEND_API_KEY);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-// Función para enviar correos
 const sendMail = async (to, subject, html) => {
   try {
-    console.log('📧 Iniciando envío de correo...');
+    console.log('📧 Enviando correo con SendGrid...');
     console.log('📬 Destinatario:', to);
     console.log('📝 Asunto:', subject);
-    console.log('🔐 API Key configurada:', process.env.RESEND_API_KEY ? '✅ SÍ' : '❌ NO');
+    console.log('🔐 API Key configurada:', process.env.SENDGRID_API_KEY ? '✅ SÍ' : '❌ NO');
 
-    // Validar que la API Key esté configurada
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY no está configurada en las variables de entorno');
+    if (!process.env.SENDGRID_API_KEY) {
+      throw new Error('SENDGRID_API_KEY no configurada');
     }
 
-    // Enviar el correo con Resend
-    const { data, error } = await resend.emails.send({
-      from: 'QuickRide <onboarding@resend.dev>',
-      to: [to],
+    const msg = {
+      to: to,
+      from: 'lilnazx1115@gmail.com', // ← TU EMAIL VERIFICADO
       subject: subject,
       html: html,
-    });
+    };
 
-    // Si Resend devuelve un error
-    if (error) {
-      console.error('❌ Error de Resend:', error);
-      throw new Error(error.message || 'Error desconocido al enviar correo');
-    }
-
-    // Éxito
-    console.log('✅ Correo enviado exitosamente');
-    console.log('📬 ID del correo:', data.id);
+    const response = await sgMail.send(msg);
     
-    return data;
+    console.log('✅ Correo enviado exitosamente');
+    console.log('📬 Status Code:', response[0].statusCode);
+    
+    return response;
     
   } catch (error) {
-    console.error('❌ ERROR CRÍTICO AL ENVIAR CORREO:');
+    console.error('❌ ERROR AL ENVIAR CORREO:');
     console.error('📋 Mensaje:', error.message);
-    console.error('🔍 Stack:', error.stack);
+    
+    if (error.response) {
+      console.error('🔍 Código:', error.code);
+      console.error('📊 Response:', error.response.body);
+    }
     
     throw new Error(`Failed to send email: ${error.message}`);
   }
