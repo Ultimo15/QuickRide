@@ -26,6 +26,13 @@ function UserHomeScreen() {
   const [mapLocation, setMapLocation] = useState("");
   const [rideCreated, setRideCreated] = useState(false);
 
+  // 🆕 NUEVOS ESTADOS PARA TRACKING
+  const [captainLocation, setCaptainLocation] = useState(null);
+  const [captainVehicleType, setCaptainVehicleType] = useState(null);
+  const [eta, setEta] = useState(null);
+  const [rideStatus, setRideStatus] = useState(""); // 'accepted', 'ongoing', 'completed'
+  const mapIframeRef = useRef(null);
+
   // Detalles del viaje
   const [pickupLocation, setPickupLocation] = useState("");
   const [destinationLocation, setDestinationLocation] = useState("");
@@ -168,6 +175,12 @@ function UserHomeScreen() {
       
       Console.log("✅ Viaje cancelado:", response.data);
       
+      // 🆕 Limpiar estados de tracking
+      setCaptainLocation(null);
+      setCaptainVehicleType(null);
+      setEta(null);
+      setRideStatus("");
+      
       setShowRideDetailsPanel(false);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(true);
@@ -215,7 +228,53 @@ function UserHomeScreen() {
     updateLocation();
   }, []);
 
-  // Eventos Socket
+  // 🆕 EFECTO PARA TRACKING EN TIEMPO REAL
+  useEffect(() => {
+    if (!socket || !confirmedRideData) return;
+
+    Console.log("🎯 Iniciando tracking en tiempo real para usuario");
+
+    // Escuchar actualizaciones de ubicación del conductor
+    socket.on("captain-location-update", (data) => {
+      Console.log("📍 Ubicación del conductor actualizada:", data);
+      
+      setCaptainLocation(data.location);
+      setCaptainVehicleType(data.vehicleType);
+
+      // Actualizar mapa con la ubicación del conductor
+      if (rideStatus === "accepted") {
+        // Mostrar ruta del conductor hacia el punto de recogida
+        setMapLocation(
+          `https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'}&origin=${data.location.ltd},${data.location.lng}&destination=${pickupLocation}&mode=driving`
+        );
+      } else if (rideStatus === "ongoing") {
+        // Mostrar ruta hacia el destino
+        setMapLocation(
+          `https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'}&origin=${data.location.ltd},${data.location.lng}&destination=${destinationLocation}&mode=driving`
+        );
+      }
+    });
+
+    // Escuchar actualizaciones de ETA
+    socket.on("ride-eta-update", (data) => {
+      Console.log("⏱️ ETA actualizado:", data);
+      setEta(data.eta);
+    });
+
+    // Escuchar cambios de estado del viaje
+    socket.on("ride-status-update", (data) => {
+      Console.log("🔄 Estado del viaje actualizado:", data);
+      setRideStatus(data.status);
+    });
+
+    return () => {
+      socket.off("captain-location-update");
+      socket.off("ride-eta-update");
+      socket.off("ride-status-update");
+    };
+  }, [socket, confirmedRideData, rideStatus, pickupLocation, destinationLocation]);
+
+  // Eventos Socket (ORIGINAL + MEJORAS)
   useEffect(() => {
     if (!socket) {
       Console.warn("⚠️ Socket no inicializado");
@@ -234,6 +293,9 @@ function UserHomeScreen() {
       clearTimeout(rideTimeout.current);
       Console.log("Viaje confirmado", data);
 
+      // 🆕 Establecer estado del viaje como "accepted"
+      setRideStatus("accepted");
+
       setConfirmedRideData(data);
       setRideCreated(false);
       setShowRideDetailsPanel(true);
@@ -243,6 +305,10 @@ function UserHomeScreen() {
 
     socket.on("ride-started", (data) => {
       Console.log("Viaje iniciado");
+      
+      // 🆕 Cambiar estado a "ongoing"
+      setRideStatus("ongoing");
+      
       setMapLocation(
         `https://www.google.com/maps?q=${data.pickup} to ${data.destination}&output=embed`
       );
@@ -250,6 +316,13 @@ function UserHomeScreen() {
 
     socket.on("ride-ended", () => {
       Console.log("Viaje finalizado");
+      
+      // 🆕 Limpiar estados de tracking
+      setCaptainLocation(null);
+      setCaptainVehicleType(null);
+      setEta(null);
+      setRideStatus("");
+      
       setShowRideDetailsPanel(false);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(true);
@@ -331,20 +404,56 @@ function UserHomeScreen() {
     };
   }, [confirmedRideData, socket]);
 
+  // 🆕 FUNCIÓN HELPER PARA OBTENER ÍCONO DEL VEHÍCULO
+  const getVehicleIcon = (vehicleType) => {
+    const icons = {
+      car: "🚗",
+      bike: "🏍️",
+      auto: "🛺"
+    };
+    return icons[vehicleType] || "🚗";
+  };
+
   return (
     <div
       className="relative w-full h-dvh bg-contain"
       style={{ backgroundImage: `url(${map})` }}
     >
-      <Sidebar />
+      {/* ✅ SIDEBAR CON Z-INDEX CORREGIDO */}
+      <div className="relative z-50">
+        <Sidebar />
+      </div>
+
+      {/* MAPA */}
       <iframe
+        ref={mapIframeRef}
         src={mapLocation}
-        className="absolute map w-full h-[120vh]"
+        className="absolute map w-full h-[120vh] z-0"
         allowFullScreen={true}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
       ></iframe>
 
+      {/* 🆕 INDICADOR DE TRACKING EN TIEMPO REAL */}
+      {(rideStatus === "accepted" || rideStatus === "ongoing") && captainLocation && (
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-30 bg-white rounded-full px-6 py-3 shadow-lg flex items-center gap-3">
+          <div className="animate-pulse">
+            <span className="text-2xl">{getVehicleIcon(captainVehicleType)}</span>
+          </div>
+          <div>
+            <p className="text-xs text-gray-600">
+              {rideStatus === "accepted" ? "Tu conductor viene en camino" : "En viaje"}
+            </p>
+            {eta && (
+              <p className="text-lg font-bold text-blue-600">
+                {eta} {eta === 1 ? "minuto" : "minutos"}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PANEL DE BÚSQUEDA DE VIAJE */}
       {showFindTripPanel && (
         <div className="absolute bottom-0 flex flex-col justify-start p-4 pb-2 gap-4 rounded-t-lg bg-white w-full z-10 max-h-[80vh]">
           <h1 className="text-2xl font-semibold">Buscar viaje</h1>
@@ -373,7 +482,7 @@ function UserHomeScreen() {
             </div>
           </div>
 
-          {/* ✅ CORRECCIÓN: Sugerencias FUERA del scroll, con altura fija */}
+          {/* ✅ SUGERENCIAS FUERA DEL SCROLL, CON ALTURA FIJA */}
           {locationSuggestion.length > 0 && (
             <div className="w-full max-h-60 overflow-y-auto">
               <LocationSuggestions
@@ -420,6 +529,11 @@ function UserHomeScreen() {
         loading={loading}
         rideCreated={rideCreated}
         confirmedRideData={confirmedRideData}
+        // 🆕 PASAR PROPS PARA MOSTRAR TRACKING
+        captainLocation={captainLocation}
+        eta={eta}
+        rideStatus={rideStatus}
+        vehicleType={captainVehicleType}
       />
     </div>
   );
