@@ -32,4 +32,3 @@ function Input({ label, type, name, placeholder, defaultValue, register, error, 
 }
 
 export default Input;
-```
