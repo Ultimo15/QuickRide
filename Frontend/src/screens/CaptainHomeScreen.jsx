@@ -1,8 +1,8 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import map from "/map.png";
 import axios from "axios";
 import { useCaptain } from "../contexts/CaptainContext";
-import { Phone, User } from "lucide-react";
+import { Phone, User, Volume2, VolumeX } from "lucide-react";
 import { SocketDataContext } from "../contexts/SocketContext";
 import { NewRide, Sidebar } from "../components";
 import Console from "../utils/console";
@@ -73,6 +73,89 @@ function CaptainHomeScreen() {
     JSON.parse(localStorage.getItem("showBtn")) || "accept"
   );
 
+  // 🔊 NUEVO: Estados para sonido y vibración
+  const notificationSound = useRef(null);
+  const [soundEnabled, setSoundEnabled] = useState(
+    localStorage.getItem("soundEnabled") !== "false"
+  );
+  const [audioReady, setAudioReady] = useState(false);
+
+  // 🔊 NUEVO: Inicializar sonido
+  useEffect(() => {
+    // Crear el objeto de audio con la ruta correcta (Sounds en mayúscula)
+    notificationSound.current = new Audio("/Sounds/new-ride.mp3");
+    notificationSound.current.volume = 0.7;
+
+    // Pre-cargar el audio cuando el usuario haga clic en cualquier lugar
+    const enableAudio = () => {
+      if (notificationSound.current && !audioReady) {
+        notificationSound.current.load();
+        setAudioReady(true);
+        Console.log("✅ Audio cargado y listo");
+        document.removeEventListener("click", enableAudio);
+        document.removeEventListener("touchstart", enableAudio);
+      }
+    };
+
+    // Escuchar el primer clic o toque (móvil)
+    document.addEventListener("click", enableAudio);
+    document.addEventListener("touchstart", enableAudio);
+
+    return () => {
+      document.removeEventListener("click", enableAudio);
+      document.removeEventListener("touchstart", enableAudio);
+      if (notificationSound.current) {
+        notificationSound.current.pause();
+        notificationSound.current = null;
+      }
+    };
+  }, [audioReady]);
+
+  // 🔊 NUEVO: Función para reproducir notificación
+  const playNotification = () => {
+    // Reproducir sonido
+    if (soundEnabled && notificationSound.current) {
+      notificationSound.current
+        .play()
+        .then(() => {
+          Console.log("🔊 Sonido reproducido exitosamente");
+        })
+        .catch((err) => {
+          Console.log("⚠️ Error reproduciendo sonido:", err);
+          // Si falla, intentar recargar
+          if (!audioReady) {
+            notificationSound.current.load();
+          }
+        });
+    }
+
+    // Vibración en dispositivos móviles
+    if ("vibrate" in navigator) {
+      try {
+        // Patrón: vibra 300ms, pausa 100ms, vibra 300ms (urgente)
+        navigator.vibrate([300, 100, 300]);
+        Console.log("📳 Vibración activada");
+      } catch (err) {
+        Console.log("⚠️ Error con vibración:", err);
+      }
+    }
+  };
+
+  // 🔊 NUEVO: Toggle para activar/desactivar sonido
+  const toggleSound = () => {
+    const newValue = !soundEnabled;
+    setSoundEnabled(newValue);
+    localStorage.setItem("soundEnabled", String(newValue));
+    Console.log(`🔊 Sonido ${newValue ? "activado" : "desactivado"}`);
+    
+    // Reproducir sonido de prueba al activar
+    if (newValue && notificationSound.current) {
+      notificationSound.current.play().catch((err) => {
+        Console.log("Error probando sonido:", err);
+      });
+    }
+  };
+
   const acceptRide = async () => {
     try {
       if (newRide._id != "") {
@@ -95,7 +178,7 @@ function CaptainHomeScreen() {
       }
     } catch (error) {
       setLoading(false);
-      showAlert('Error', error.response.data.message, 'failure');
+      showAlert("Error", error.response.data.message, "failure");
       Console.log(error.response);
       setTimeout(() => {
         clearRideData();
@@ -209,7 +292,7 @@ function CaptainHomeScreen() {
     setNewRide(defaultRideData);
     localStorage.removeItem("rideDetails");
     localStorage.removeItem("showPanel");
-  }
+  };
 
   useEffect(() => {
     if (captain._id) {
@@ -222,14 +305,18 @@ function CaptainHomeScreen() {
     }
 
     socket.on("new-ride", (data) => {
-      Console.log("Nuevo viaje disponible:", data);
+      Console.log("🚗 Nuevo viaje disponible:", data);
+
+      // 🔊 NUEVO: Reproducir notificación (sonido + vibración)
+      playNotification();
+
       setShowBtn("accept");
       setNewRide(data);
       setShowNewRidePanel(true);
     });
 
     socket.on("ride-cancelled", (data) => {
-      Console.log("Viaje cancelado", data);
+      Console.log("❌ Viaje cancelado", data);
       updateLocation();
       clearRideData();
     });
@@ -335,6 +422,20 @@ function CaptainHomeScreen() {
         type={alert.type}
       />
       <Sidebar />
+
+      {/* 🔊 NUEVO: Toggle de sonido flotante */}
+      <button
+        onClick={toggleSound}
+        className="absolute top-4 right-4 z-50 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all active:scale-95"
+        title={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
+      >
+        {soundEnabled ? (
+          <Volume2 className="w-6 h-6 text-green-600" />
+        ) : (
+          <VolumeX className="w-6 h-6 text-gray-400" />
+        )}
+      </button>
+
       <iframe
         src={mapLocation}
         className="map w-full h-[80vh]"
@@ -368,7 +469,9 @@ function CaptainHomeScreen() {
 
             <div className="text-right">
               <p className="text-xs text-gray-500 ">Ganancias</p>
-              <h1 className="font-semibold">$ {earnings.today?.toLocaleString('es-CO')}</h1>
+              <h1 className="font-semibold">
+                $ {earnings.today?.toLocaleString("es-CO")}
+              </h1>
             </div>
           </div>
 
