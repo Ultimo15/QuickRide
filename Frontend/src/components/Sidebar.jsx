@@ -5,10 +5,26 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Console from "../utils/console";
 
-function Sidebar() {
+function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const token = localStorage.getItem("token");
+  // 🔧 Usar el estado pasado como prop en lugar del estado local
   const [showSidebar, setShowSidebar] = useState(false);
   const [newUser, setNewUser] = useState({});
+
+  // 🆕 Sincronizar estado local con prop
+  useEffect(() => {
+    if (setSidebarOpen) {
+      setShowSidebar(sidebarOpen || false);
+    }
+  }, [sidebarOpen, setSidebarOpen]);
+
+  // 🆕 Función para cambiar el estado del sidebar
+  const toggleSidebar = (value) => {
+    setShowSidebar(value);
+    if (setSidebarOpen) {
+      setSidebarOpen(value);
+    }
+  };
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("userData"));
@@ -49,7 +65,7 @@ function Sidebar() {
       <div
         className="m-3 mt-4 absolute right-0 top-0 z-50 cursor-pointer bg-white p-1 rounded shadow-md hover:shadow-lg transition-shadow"
         onClick={() => {
-          setShowSidebar(!showSidebar);
+          toggleSidebar(!showSidebar);
         }}
       >
         {showSidebar ? <X /> : <Menu />}
@@ -63,7 +79,7 @@ function Sidebar() {
       {showSidebar && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"
-          onClick={() => setShowSidebar(false)}
+          onClick={() => toggleSidebar(false)}
         />
       )}
 
@@ -101,7 +117,7 @@ function Sidebar() {
           <Link
             to={`/${newUser?.type}/edit-profile`}
             className="flex items-center justify-between py-4 cursor-pointer hover:bg-zinc-100 rounded-xl px-3 transition-colors"
-            onClick={() => setShowSidebar(false)}
+            onClick={() => toggleSidebar(false)}
           >
             <div className="flex gap-3">
               <CircleUserRound /> <h1>Editar Perfil</h1>
@@ -114,7 +130,7 @@ function Sidebar() {
           <Link
             to={`/${newUser?.type}/rides`}
             className="flex items-center justify-between py-4 cursor-pointer hover:bg-zinc-100 rounded-xl px-3 transition-colors"
-            onClick={() => setShowSidebar(false)}
+            onClick={() => toggleSidebar(false)}
           >
             <div className="flex gap-3">
               <History /> <h1>Historial de Viajes</h1>
@@ -127,7 +143,7 @@ function Sidebar() {
           <Link
             to={`/${newUser?.type}/reset-password?token=${token}`}
             className="flex items-center justify-between py-4 cursor-pointer hover:bg-zinc-100 rounded-xl px-3 transition-colors"
-            onClick={() => setShowSidebar(false)}
+            onClick={() => toggleSidebar(false)}
           >
             <div className="flex gap-3">
               <KeyRound /> <h1>Cambiar Contraseña</h1>
