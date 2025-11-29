@@ -76,6 +76,9 @@ function CaptainHomeScreen() {
     JSON.parse(localStorage.getItem("showBtn")) || "accept"
   );
 
+  // 🆕 Estado para controlar visibilidad del sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   // 🔊 Estados para sonido y vibración
   const notificationSound = useRef(null);
   const notificationInterval = useRef(null);
@@ -275,6 +278,10 @@ function CaptainHomeScreen() {
         setNewRide(defaultRideData);
         localStorage.removeItem("rideDetails");
         localStorage.removeItem("showPanel");
+        localStorage.removeItem("messages");
+        
+        // 🆕 Recalcular ganancias después de finalizar viaje
+        calculateEarnings();
       }
     } catch (err) {
       setLoading(false);
@@ -430,6 +437,7 @@ function CaptainHomeScreen() {
     setNewRide(defaultRideData);
     localStorage.removeItem("rideDetails");
     localStorage.removeItem("showPanel");
+    localStorage.removeItem("messages");
   };
 
   useEffect(() => {
@@ -578,21 +586,24 @@ function CaptainHomeScreen() {
         type={alert.type}
       />
       
-      {/* ✅ SIDEBAR SIN WRAPPER EXTRA - CORRECCIÓN APLICADA */}
-      <Sidebar />
+      {/* ✅ SIDEBAR SIN WRAPPER EXTRA + CONTROL DE ESTADO */}
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* 🔊 BOTÓN DE SONIDO - z-50 */}
-      <button
-        onClick={toggleSound}
-        className="absolute top-20 right-4 z-50 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all active:scale-95"
-        title={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
-      >
-        {soundEnabled ? (
-          <Volume2 className="w-6 h-6 text-green-600" />
-        ) : (
-          <VolumeX className="w-6 h-6 text-gray-400" />
-        )}
-      </button>
+      {/* 🔧 Se oculta cuando el sidebar está abierto */}
+      {!sidebarOpen && (
+        <button
+          onClick={toggleSound}
+          className="absolute top-20 right-4 z-50 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all active:scale-95"
+          title={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
+        >
+          {soundEnabled ? (
+            <Volume2 className="w-6 h-6 text-green-600" />
+          ) : (
+            <VolumeX className="w-6 h-6 text-gray-400" />
+          )}
+        </button>
+      )}
 
       {/* MAPA - z-0 */}
       <iframe
@@ -604,7 +615,8 @@ function CaptainHomeScreen() {
       ></iframe>
 
       {/* PANEL DE DETALLES DEL CONDUCTOR - z-10 */}
-      {showCaptainDetailsPanel && (
+      {/* 🔧 Se oculta cuando el sidebar está abierto */}
+      {showCaptainDetailsPanel && !sidebarOpen && (
         <div className="absolute bottom-0 flex flex-col justify-start p-4 gap-2 rounded-t-lg bg-white h-fit w-full z-10">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -686,20 +698,23 @@ function CaptainHomeScreen() {
       )}
 
       {/* ⭐ PANEL DE NUEVA OFERTA - z-20 (aparece sobre el panel de detalles) */}
-      <NewRide
-        rideData={newRide}
-        otp={otp}
-        setOtp={setOtp}
-        showBtn={showBtn}
-        showPanel={showNewRidePanel}
-        setShowPanel={setShowNewRidePanel}
-        showPreviousPanel={setShowCaptainDetailsPanel}
-        loading={loading}
-        acceptRide={acceptRide}
-        verifyOTP={verifyOTP}
-        endRide={endRide}
-        error={error}
-      />
+      {/* 🔧 Se oculta cuando el sidebar está abierto */}
+      {!sidebarOpen && (
+        <NewRide
+          rideData={newRide}
+          otp={otp}
+          setOtp={setOtp}
+          showBtn={showBtn}
+          showPanel={showNewRidePanel}
+          setShowPanel={setShowNewRidePanel}
+          showPreviousPanel={setShowCaptainDetailsPanel}
+          loading={loading}
+          acceptRide={acceptRide}
+          verifyOTP={verifyOTP}
+          endRide={endRide}
+          error={error}
+        />
+      )}
     </div>
   );
 }
