@@ -71,8 +71,7 @@ module.exports.createRide = async (req, res) => {
         const pickupCoordinates = await mapService.getAddressCoordinate(pickup);
         console.log("Pickup Coordinates", pickupCoordinates);
 
-        // --- CAMBIO AQUÍ: Aumentamos el radio de 4 a 100 KM para pruebas ---
-        // Esto evita que la solicitud parpadee si el GPS es inestable
+        // Radio aumentado a 100km para asegurar que encuentre al conductor en pruebas
         const searchRadius = 100; 
 
         const captainsInRadius = await mapService.getCaptainsInTheRadius(
@@ -237,6 +236,8 @@ module.exports.endRide = async (req, res) => {
   }
 };
 
+// --- MODIFICACIÓN IMPORTANTE ---
+// Esta función ahora IGNORA la petición de cancelar para permitir pruebas.
 module.exports.cancelRide = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -246,7 +247,13 @@ module.exports.cancelRide = async (req, res) => {
   const { rideId } = req.query;
 
   try {
-    const ride = await rideModel.findOneAndUpdate(
+    // LOG DE DEBUG: Para que sepas que el frontend intentó cancelar
+    console.log(`⚠️ INTENTO DE CANCELACIÓN BLOQUEADO (Modo Pruebas) para el viaje: ${rideId}`);
+    
+    // NOTA: Hemos comentado la lógica real para que el viaje siga "vivo" en la DB
+    // y el conductor pueda aceptarlo aunque el pasajero "se rinda".
+
+    /* const ride = await rideModel.findOneAndUpdate(
       { _id: rideId },
       {
         status: "cancelled",
@@ -256,11 +263,10 @@ module.exports.cancelRide = async (req, res) => {
 
     const pickupCoordinates = await mapService.getAddressCoordinate(ride.pickup);
     
-    // También aumentamos el radio aquí para notificar la cancelación a todos
     const captainsInRadius = await mapService.getCaptainsInTheRadius(
       pickupCoordinates.ltd,
       pickupCoordinates.lng,
-      100, // Radio aumentado
+      100,
       ride.vehicle
     );
 
@@ -271,6 +277,11 @@ module.exports.cancelRide = async (req, res) => {
       });
     });
     return res.status(200).json(ride);
+    */
+
+    // Respondemos OK para que el frontend no de error, pero no cancelamos nada.
+    return res.status(200).json({ message: "Cancelación ignorada para permitir aceptación del conductor" });
+
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
