@@ -91,7 +91,7 @@ module.exports.createRide = async ({
   }
 };
 
-// when ride request is accepted by captain
+// When ride request is accepted by captain
 module.exports.confirmRide = async ({ rideId, captain }) => {
   if (!rideId) {
     throw new Error("Ride id is required");
@@ -128,7 +128,7 @@ module.exports.confirmRide = async ({ rideId, captain }) => {
 
     return ride;
   } catch (error) {
-    console.log(error)
+    console.log(error);
     throw new Error("Error occured while confirming ride.");
   }
 };
@@ -192,6 +192,7 @@ module.exports.endRide = async ({ rideId, captain }) => {
     throw new Error("Ride not ongoing");
   }
 
+  // Actualizar estado del viaje a completado
   await rideModel.findOneAndUpdate(
     {
       _id: rideId,
@@ -200,6 +201,28 @@ module.exports.endRide = async ({ rideId, captain }) => {
       status: "completed",
     }
   );
+
+  // ✅ ACTUALIZAR ESTADÍSTICAS DEL CONDUCTOR
+  try {
+    const captainData = await captainModel.findById(captain._id);
+
+    if (captainData) {
+      // Incrementar viajes completados
+      captainData.completedRides = (captainData.completedRides || 0) + 1;
+
+      // Sumar ganancias
+      captainData.totalEarnings = (captainData.totalEarnings || 0) + ride.fare;
+
+      await captainData.save();
+
+      console.log(`✅ Captain ${captain._id} stats updated:`);
+      console.log(`   - Completed rides: ${captainData.completedRides}`);
+      console.log(`   - Total earnings: ${captainData.totalEarnings}`);
+    }
+  } catch (error) {
+    console.error("Error updating captain stats:", error.message);
+    // No lanzamos error para que el viaje se complete igual
+  }
 
   return ride;
 };
