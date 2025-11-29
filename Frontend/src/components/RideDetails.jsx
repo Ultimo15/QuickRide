@@ -148,7 +148,7 @@ function RideDetails({
               <CreditCard size={18} />
               <div>
                 <h1 className="text-lg font-semibold leading-6">
-                  ₹ {fare[selectedVehicle]}
+                  $ {fare[selectedVehicle]?.toLocaleString('es-CO')}
                 </h1>
                 <p className="text-xs text-gray-800 ">Cash</p>
               </div>
