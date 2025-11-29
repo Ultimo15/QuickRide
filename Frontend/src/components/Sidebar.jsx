@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import { ChevronRight, CircleUserRound, History, KeyRound, Menu, X } from "lucide-react";
 import Button from "./Button";
 import axios from "axios";
@@ -9,7 +8,6 @@ import Console from "../utils/console";
 function Sidebar() {
   const token = localStorage.getItem("token");
   const [showSidebar, setShowSidebar] = useState(false);
-
   const [newUser, setNewUser] = useState({});
 
   useEffect(() => {
@@ -29,7 +27,6 @@ function Sidebar() {
           },
         }
       );
-
       localStorage.removeItem("token");
       localStorage.removeItem("userData");
       localStorage.removeItem("messages");
@@ -39,9 +36,10 @@ function Sidebar() {
       localStorage.removeItem("showBtn");
       navigate("/");
     } catch (error) {
-      Console.log("Error getting logged out", error);
+      Console.log("Error al cerrar sesión", error);
     }
   };
+
   return (
     <>
       <div
@@ -53,14 +51,14 @@ function Sidebar() {
         {showSidebar ? <X /> : <Menu />}
       </div>
 
-      {/* Sidebar Component */}
+      {/* Componente Sidebar */}
       <div
-        className={`${showSidebar ? " left-0 " : " -left-[100%] "
-          } z-10 duration-300 absolute w-full h-dvh bottom-0 bg-white p-4 pt-5 flex flex-col justify-between`}
+        className={`${
+          showSidebar ? " left-0 " : " -left-[100%] "
+        } z-10 duration-300 absolute w-full h-dvh bottom-0 bg-white p-4 pt-5 flex flex-col justify-between`}
       >
         <div className="select-none">
-          <h1 className="relative text-2xl font-semibold ">Profile</h1>
-
+          <h1 className="relative text-2xl font-semibold ">Perfil</h1>
           <div className="leading-3 mt-8 mb-4">
             <div className="my-2 rounded-full w-24 h-24 bg-blue-400 mx-auto flex items-center justify-center">
               <h1 className="text-5xl text-white">
@@ -82,7 +80,7 @@ function Sidebar() {
             className="flex items-center justify-between py-4 cursor-pointer hover:bg-zinc-100 rounded-xl px-3"
           >
             <div className="flex gap-3">
-              <CircleUserRound /> <h1>Edit Profile</h1>
+              <CircleUserRound /> <h1>Editar Perfil</h1>
             </div>
             <div>
               <ChevronRight />
@@ -94,7 +92,7 @@ function Sidebar() {
             className="flex items-center justify-between py-4 cursor-pointer hover:bg-zinc-100 rounded-xl px-3"
           >
             <div className="flex gap-3">
-              <History /> <h1>Ride History</h1>
+              <History /> <h1>Historial de Viajes</h1>
             </div>
             <div>
               <ChevronRight />
@@ -106,7 +104,7 @@ function Sidebar() {
             className="flex items-center justify-between py-4 cursor-pointer hover:bg-zinc-100 rounded-xl px-3"
           >
             <div className="flex gap-3">
-              <KeyRound /> <h1>Change Password</h1>
+              <KeyRound /> <h1>Cambiar Contraseña</h1>
             </div>
             <div>
               <ChevronRight />
@@ -114,7 +112,7 @@ function Sidebar() {
           </Link>
         </div>
 
-        <Button title={"Logout"} classes={"bg-red-600"} fun={logout} />
+        <Button title={"Cerrar Sesión"} classes={"bg-red-600"} fun={logout} />
       </div>
     </>
   );
