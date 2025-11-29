@@ -578,12 +578,10 @@ function CaptainHomeScreen() {
         type={alert.type}
       />
       
-      {/* ✅ SIDEBAR CON Z-INDEX CORREGIDO */}
-      <div className="relative z-50">
-        <Sidebar />
-      </div>
+      {/* ✅ SIDEBAR SIN WRAPPER EXTRA - CORRECCIÓN APLICADA */}
+      <Sidebar />
 
-      {/* 🔊 Toggle de sonido */}
+      {/* 🔊 BOTÓN DE SONIDO - z-50 */}
       <button
         onClick={toggleSound}
         className="absolute top-20 right-4 z-50 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all active:scale-95"
@@ -596,6 +594,7 @@ function CaptainHomeScreen() {
         )}
       </button>
 
+      {/* MAPA - z-0 */}
       <iframe
         src={mapLocation}
         className="map w-full h-[80vh] z-0"
@@ -604,6 +603,7 @@ function CaptainHomeScreen() {
         referrerPolicy="no-referrer-when-downgrade"
       ></iframe>
 
+      {/* PANEL DE DETALLES DEL CONDUCTOR - z-10 */}
       {showCaptainDetailsPanel && (
         <div className="absolute bottom-0 flex flex-col justify-start p-4 gap-2 rounded-t-lg bg-white h-fit w-full z-10">
           <div className="flex justify-between items-center">
@@ -685,6 +685,7 @@ function CaptainHomeScreen() {
         </div>
       )}
 
+      {/* ⭐ PANEL DE NUEVA OFERTA - z-20 (aparece sobre el panel de detalles) */}
       <NewRide
         rideData={newRide}
         otp={otp}
