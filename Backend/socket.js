@@ -94,18 +94,25 @@ function initializeSocket(server) {
         // Buscar el viaje para obtener el socketId del usuario
         const ride = await rideModel.findById(rideId).populate('user');
         
-        if (!ride || !ride.user) {
-          console.warn(`⚠️ Viaje ${rideId} no encontrado o sin usuario`);
+        if (!ride) {
+          console.warn(`⚠️ Viaje ${rideId} no encontrado`);
+          return;
+        }
+
+        if (!ride.user) {
+          console.warn(`⚠️ Viaje ${rideId} sin usuario asignado`);
           return;
         }
 
         // Actualizar ubicación del conductor en la base de datos
-        await captainModel.findByIdAndUpdate(ride.captain, {
-          location: {
-            ltd: location.ltd,
-            lng: location.lng
-          }
-        });
+        if (ride.captain) {
+          await captainModel.findByIdAndUpdate(ride.captain, {
+            location: {
+              ltd: location.ltd,
+              lng: location.lng
+            }
+          });
+        }
 
         // Enviar ubicación al usuario específico
         if (ride.user.socketId) {
@@ -138,8 +145,13 @@ function initializeSocket(server) {
       try {
         const ride = await rideModel.findById(rideId).populate('user');
         
-        if (!ride || !ride.user) {
-          console.warn(`⚠️ Viaje ${rideId} no encontrado o sin usuario`);
+        if (!ride) {
+          console.warn(`⚠️ Viaje ${rideId} no encontrado`);
+          return;
+        }
+
+        if (!ride.user) {
+          console.warn(`⚠️ Viaje ${rideId} sin usuario asignado`);
           return;
         }
 
@@ -151,6 +163,8 @@ function initializeSocket(server) {
           });
           
           console.log(`⏱️ ETA ${eta} min enviado al usuario ${ride.user._id}`);
+        } else {
+          console.warn(`⚠️ Usuario ${ride.user._id} no tiene socketId activo`);
         }
       } catch (error) {
         console.error("Error en ride-eta-update:", error.message);
@@ -180,19 +194,22 @@ function initializeSocket(server) {
         ride.status = status;
         await ride.save();
 
-        // Notificar a ambos usuarios
+        // Notificar al usuario (si está conectado)
         if (ride.user && ride.user.socketId) {
           io.to(ride.user.socketId).emit("ride-status-update", {
             rideId,
             status
           });
+          console.log(`🔄 Estado enviado al usuario ${ride.user._id}: ${status}`);
         }
 
+        // Notificar al conductor (si está conectado)
         if (ride.captain && ride.captain.socketId) {
           io.to(ride.captain.socketId).emit("ride-status-update", {
             rideId,
             status
           });
+          console.log(`🔄 Estado enviado al conductor ${ride.captain._id}: ${status}`);
         }
 
         console.log(`🔄 Estado del viaje ${rideId} actualizado a: ${status}`);
@@ -237,8 +254,30 @@ function initializeSocket(server) {
     // ============================================
     // DESCONEXIÓN
     // ============================================
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       console.log(`❌ Client disconnected: ${socket.id}`);
+
+      // 🔄 OPCIONAL: Actualizar estado del conductor a 'inactive' al desconectarse
+      try {
+        const captain = await captainModel.findOne({ socketId: socket.id });
+        if (captain) {
+          await captainModel.findByIdAndUpdate(captain._id, {
+            status: 'inactive',
+            socketId: null
+          });
+          console.log(`🔴 Captain ${captain._id} set to INACTIVE on disconnect`);
+        }
+
+        const user = await userModel.findOne({ socketId: socket.id });
+        if (user) {
+          await userModel.findByIdAndUpdate(user._id, {
+            socketId: null
+          });
+          console.log(`🔴 User ${user._id} socketId cleared on disconnect`);
+        }
+      } catch (error) {
+        console.error("Error handling disconnect:", error.message);
+      }
     });
   });
 
