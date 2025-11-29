@@ -142,10 +142,14 @@ function UserHomeScreen() {
       setLoading(false);
       setRideCreated(true);
 
-      // Automatically cancel the ride after 1.5 minutes
-      rideTimeout.current = setTimeout(() => {
+      // --- CORRECCIÓN AQUÍ ---
+      // He comentado el timeout para evitar que el viaje se cancele solo mientras pruebas.
+      // Si la variable de entorno no existía, esto se ejecutaba en 1 milisegundo cerrando el panel.
+      
+      /* rideTimeout.current = setTimeout(() => {
         cancelRide();
-      }, import.meta.env.VITE_RIDE_TIMEOUT);
+      }, import.meta.env.VITE_RIDE_TIMEOUT || 300000); // Fallback de 5 mins por si acaso
+      */
       
     } catch (error) {
       Console.log(error);
