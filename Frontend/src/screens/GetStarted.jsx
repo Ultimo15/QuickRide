@@ -32,7 +32,7 @@ function GetStarted() {
         className="flex flex-col bg-white p-4 pb-8 gap-8 rounded-t-lg
       "
       >
-        <h1 className="text-2xl font-semibold">Get started with QuickRide</h1>
+        <h1 className="text-2xl font-semibold">Pide tu viaje ahora con Rapidito</h1>
         <Button
           title={"Continue"}
           path={"/login"}
