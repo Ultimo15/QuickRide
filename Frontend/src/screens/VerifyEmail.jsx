@@ -17,14 +17,10 @@ const VerifyEmail = () => {
     try {
       setLoading(true);
       
-      // ✅ AJUSTE: Usar el endpoint correcto según el backend
-      const response = await axios.get(
-        `${import.meta.env.VITE_SERVER_URL}/mail/verify-user-email`,
-        {
-          headers: {
-            token: emailVerificationToken,
-          },
-        }
+      // ✅ ENDPOINT CORRECTO: /mail/:userType/verify-email
+      const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/mail/${userType}/verify-email`,
+        { token: emailVerificationToken }
       );
       
       console.log(response.data);
@@ -35,7 +31,7 @@ const VerifyEmail = () => {
         
         // ✅ Redirigir al login después de 3 segundos
         setTimeout(() => {
-          navigate(userType === 'captain' ? '/captain/login' : '/user/login');
+          navigate(`/${userType}/login`);
         }, 3000);
       }
     } catch (error) {
@@ -72,7 +68,7 @@ const VerifyEmail = () => {
       {!loading && (
         <Button
           title={"Go to Login"}
-          fun={() => navigate(userType === 'captain' ? '/captain/login' : '/user/login')}
+          fun={() => navigate(`/${userType}/login`)}
         />
       )}
     </div>
