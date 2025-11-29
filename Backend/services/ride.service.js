@@ -10,30 +10,23 @@ const getFare = async (pickup, destination) => {
 
   const distanceTime = await mapService.getDistanceTime(pickup, destination);
 
+  // ✅ TARIFAS EN PESOS COLOMBIANOS (COP)
   const baseFare = {
-    auto: 30,
-    car: 50,
-    bike: 20,
+    car: 2000,   // Base: $2,000 COP
+    bike: 1500,  // Base: $1,500 COP
   };
 
   const perKmRate = {
-    auto: 10,
-    car: 15,
-    bike: 8,
+    car: 2000,   // $2,000 COP por km
+    bike: 1500,  // $1,500 COP por km
   };
 
   const perMinuteRate = {
-    auto: 2,
-    car: 3,
-    bike: 1.5,
+    car: 200,    // $200 COP por minuto
+    bike: 150,   // $150 COP por minuto
   };
 
   const fare = {
-    auto: Math.round(
-      baseFare.auto +
-        (distanceTime.distance.value / 1000) * perKmRate.auto +
-        (distanceTime.duration.value / 60) * perMinuteRate.auto
-    ),
     car: Math.round(
       baseFare.car +
         (distanceTime.distance.value / 1000) * perKmRate.car +
