@@ -37,18 +37,3 @@ export const Alert = ({ heading, text, isVisible, onClose, type }) => {
     );
 };
 ```
-
----
-
-## ✅ **Correcciones aplicadas:**
-
-- ✅ **Template literals corregidos**: `className={` en lugar de `className=`
-- ✅ **Traducción**: "Okay" → **"Entendido"**
-- ✅ **Animaciones suaves**: Entrada y salida con transiciones
-- ✅ **Tipos de alerta**: success (verde) y failure (rojo)
-
----
-
-## 📍 **Dónde guardarlo:**
-```
-Frontend/src/components/Alert.jsx
