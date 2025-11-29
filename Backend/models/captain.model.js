@@ -18,7 +18,7 @@ const captainSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      trim: true, // ¡IMPORTANTE! Esto evita el error de login si se cuela un espacio
+      trim: true,
       match: /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
     },
     password: {
@@ -52,7 +52,6 @@ const captainSchema = new mongoose.Schema(
         minlength: [3, "Color must be at least 3 characters long"],
       },
       number: {
-        // Placa del vehículo
         type: String,
         required: true,
         minlength: [3, "Plate must be at least 3 characters long"],
@@ -64,7 +63,8 @@ const captainSchema = new mongoose.Schema(
       type: {
         type: String,
         required: true,
-        enum: ["car", "bike", "auto", "moto", "motorcycle"],
+        // ✅ SIN "AUTO" - Solo car y bike (moto/motorcycle son alias)
+        enum: ["car", "bike", "moto", "motorcycle"],
       },
     },
     location: {
@@ -79,7 +79,6 @@ const captainSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    // ✅ CAMPOS DE ESTADÍSTICAS
     completedRides: {
       type: Number,
       default: 0,
