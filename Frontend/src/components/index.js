@@ -23,4 +23,3 @@ export {
   Spinner,
   VerifyEmail,
 };
-```
