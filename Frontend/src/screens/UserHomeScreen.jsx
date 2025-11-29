@@ -26,7 +26,7 @@ function UserHomeScreen() {
   const [mapLocation, setMapLocation] = useState("");
   const [rideCreated, setRideCreated] = useState(false);
 
-  // Ride details
+  // Detalles del viaje
   const [pickupLocation, setPickupLocation] = useState("");
   const [destinationLocation, setDestinationLocation] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState("car");
@@ -37,7 +37,7 @@ function UserHomeScreen() {
   const [confirmedRideData, setConfirmedRideData] = useState(null);
   const rideTimeout = useRef(null);
 
-  // Panels
+  // Paneles
   const [showFindTripPanel, setShowFindTripPanel] = useState(true);
   const [showSelectVehiclePanel, setShowSelectVehiclePanel] = useState(false);
   const [showRideDetailsPanel, setShowRideDetailsPanel] = useState(false);
@@ -73,7 +73,6 @@ function UserHomeScreen() {
       setDestinationLocation(value);
     }
 
-    // ✅ SIEMPRE HABILITAR SUGERENCIAS (quitar el if de production)
     handleLocationChange(value, token);
 
     if (e.target.value.length < 3) {
@@ -106,7 +105,7 @@ function UserHomeScreen() {
     } catch (error) {
       Console.log(error);
       setLoading(false);
-      alert("Error al calcular tarifa. Verifica que las direcciones estén en nuestra zona de operación.");
+      alert("Error al calcular la tarifa. Verifica que las direcciones estén en nuestra zona de cobertura.");
     }
   };
 
@@ -145,16 +144,15 @@ function UserHomeScreen() {
     } catch (error) {
       Console.log(error);
       setLoading(false);
-      alert("Error al crear viaje. Verifica que las direcciones estén en nuestra zona de operación.");
+      alert("Error al crear el viaje. Verifica que las direcciones estén en nuestra zona de cobertura.");
     }
   };
 
-  // ✅ FUNCIÓN CANCELRIDE CORREGIDA
   const cancelRide = async () => {
     const rideDetails = JSON.parse(localStorage.getItem("rideDetails"));
     
     if (!rideDetails || !rideDetails._id) {
-      Console.error("No ride details found");
+      Console.error("No se encontraron detalles del viaje");
       return;
     }
 
@@ -170,7 +168,6 @@ function UserHomeScreen() {
       
       Console.log("✅ Viaje cancelado:", response.data);
       
-      // ✅ LIMPIAR TODO Y VOLVER AL INICIO
       setShowRideDetailsPanel(false);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(true);
@@ -183,7 +180,7 @@ function UserHomeScreen() {
     } catch (error) {
       Console.error("Error cancelando viaje:", error);
       setLoading(false);
-      alert("Error al cancelar el viaje. Por favor intenta de nuevo.");
+      alert("Error al cancelar el viaje. Por favor, intenta de nuevo.");
     }
   };
 
@@ -208,7 +205,7 @@ function UserHomeScreen() {
           );
         },
         (error) => {
-          console.error("Error fetching position:", error);
+          console.error("Error obteniendo ubicación:", error);
         }
       );
     }
@@ -218,7 +215,7 @@ function UserHomeScreen() {
     updateLocation();
   }, []);
 
-  // Socket Events
+  // Eventos Socket
   useEffect(() => {
     if (!socket) {
       Console.warn("⚠️ Socket no inicializado");
@@ -233,9 +230,9 @@ function UserHomeScreen() {
     }
 
     socket.on("ride-confirmed", (data) => {
-      Console.log("Clearing Timeout", rideTimeout);
+      Console.log("Limpiando timeout", rideTimeout);
       clearTimeout(rideTimeout.current);
-      Console.log("Ride Confirmed", data);
+      Console.log("Viaje confirmado", data);
 
       setConfirmedRideData(data);
       setRideCreated(false);
@@ -245,14 +242,14 @@ function UserHomeScreen() {
     });
 
     socket.on("ride-started", (data) => {
-      Console.log("Ride started");
+      Console.log("Viaje iniciado");
       setMapLocation(
         `https://www.google.com/maps?q=${data.pickup} to ${data.destination}&output=embed`
       );
     });
 
     socket.on("ride-ended", () => {
-      Console.log("Ride Ended");
+      Console.log("Viaje finalizado");
       setShowRideDetailsPanel(false);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(true);
@@ -350,7 +347,7 @@ function UserHomeScreen() {
 
       {showFindTripPanel && (
         <div className="absolute b-0 flex flex-col justify-start p-4 pb-2 gap-4 rounded-b-lg bg-white h-fit w-full">
-          <h1 className="text-2xl font-semibold">Find a trip</h1>
+          <h1 className="text-2xl font-semibold">Buscar viaje</h1>
           <div className="flex items-center relative w-full h-fit">
             <div className="h-3/5 w-[3px] flex flex-col items-center justify-between bg-black rounded-full absolute mx-5">
               <div className="w-2 h-2 rounded-full border-[3px] bg-white border-black"></div>
@@ -359,7 +356,7 @@ function UserHomeScreen() {
             <div>
               <input
                 id="pickup"
-                placeholder="Add a pick-up location"
+                placeholder="Punto de recogida"
                 className="w-full bg-zinc-100 pl-10 pr-4 py-3 rounded-lg outline-black text-sm mb-2 truncate"
                 value={pickupLocation}
                 onChange={onChangeHandler}
@@ -367,7 +364,7 @@ function UserHomeScreen() {
               />
               <input
                 id="destination"
-                placeholder="Add a drop-off location"
+                placeholder="Destino"
                 className="w-full bg-zinc-100 pl-10 pr-4 py-3 rounded-lg outline-black text-sm truncate"
                 value={destinationLocation}
                 onChange={onChangeHandler}
@@ -377,7 +374,7 @@ function UserHomeScreen() {
           </div>
           {pickupLocation.length > 2 && destinationLocation.length > 2 && (
             <Button
-              title={"Search"}
+              title={"Buscar"}
               loading={loading}
               fun={() => {
                 getDistanceAndFare(pickupLocation, destinationLocation);
