@@ -3,27 +3,56 @@ const rideModel = require("../models/ride.model");
 const mapService = require("./map.service");
 const crypto = require("crypto");
 
+// ✅ FUNCIÓN PARA DETECTAR HORARIO NOCTURNO
+const isNightTime = () => {
+  // Hora actual en Colombia (UTC-5)
+  const now = new Date();
+  const colombiaTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/Bogota" })
+  );
+  const hour = colombiaTime.getHours();
+
+  // Horario nocturno: 7:00 PM (19:00) a 5:00 AM (5:00)
+  const isNight = hour >= 19 || hour < 5;
+
+  return isNight;
+};
+
+// ✅ CALCULAR TARIFA CON HORARIO NOCTURNO
 const getFare = async (pickup, destination) => {
   if (!pickup || !destination) {
     throw new Error("Pickup and destination are required");
   }
 
   const distanceTime = await mapService.getDistanceTime(pickup, destination);
+  const isNight = isNightTime();
 
-  // ✅ TARIFAS EN PESOS COLOMBIANOS (COP)
+  const now = new Date();
+  const colombiaTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/Bogota" })
+  );
+
+  console.log(
+    `🕐 Hora Colombia: ${colombiaTime.toLocaleTimeString()} | Nocturno: ${
+      isNight ? "SÍ ⭐" : "NO ☀️"
+    }`
+  );
+
+  // Tarifas base
   const baseFare = {
-    car: 2000,   // Base: $2,000 COP
-    bike: 1500,  // Base: $1,500 COP
+    car: 2000, // $2,000 COP
+    bike: 1500, // $1,500 COP
   };
 
+  // ✅ TARIFA POR KILÓMETRO SEGÚN HORARIO
   const perKmRate = {
-    car: 2000,   // $2,000 COP por km
-    bike: 1500,  // $1,500 COP por km
+    car: isNight ? 2500 : 1800, // Día: $1,800/km | Noche: $2,500/km
+    bike: isNight ? 2000 : 1500, // Día: $1,500/km | Noche: $2,000/km
   };
 
   const perMinuteRate = {
-    car: 200,    // $200 COP por minuto
-    bike: 150,   // $150 COP por minuto
+    car: 200, // $200 COP por minuto
+    bike: 150, // $150 COP por minuto
   };
 
   const fare = {
@@ -39,7 +68,13 @@ const getFare = async (pickup, destination) => {
     ),
   };
 
-  return { fare, distanceTime };
+  console.log(
+    `💰 Tarifa calculada (${isNight ? "NOCTURNA" : "DIURNA"}) - Car: $${
+      fare.car
+    } | Bike: $${fare.bike}`
+  );
+
+  return { fare, distanceTime, isNightTime: isNight };
 };
 
 module.exports.getFare = getFare;
@@ -210,7 +245,7 @@ module.exports.endRide = async ({ rideId, captain }) => {
 
       console.log(`✅ Captain ${captain._id} stats updated:`);
       console.log(`   - Completed rides: ${captainData.completedRides}`);
-      console.log(`   - Total earnings: ${captainData.totalEarnings}`);
+      console.log(`   - Total earnings: $${captainData.totalEarnings}`);
     }
   } catch (error) {
     console.error("Error updating captain stats:", error.message);
