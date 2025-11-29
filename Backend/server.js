@@ -5,6 +5,7 @@ const { createServer } = require("http");
 const app = express();
 const server = createServer(app);
 
+// Inicializamos el socket
 socket.initializeSocket(server);
 
 const cors = require("cors");
@@ -30,13 +31,22 @@ if (process.env.ENVIRONMENT == "production") {
 } else {
   app.use(morgan("dev"));
 }
-app.use(cors());
+
+// Configuración CORS ajustada para permitir conexiones estables
+app.use(cors({
+    origin: '*', 
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 if (process.env.ENVIRONMENT == "production") {
-  keepServerRunning();
+  // --- SOLUCIÓN APLICADA AQUÍ ---
+  // keepServerRunning(); // COMENTADO: Esto causaba el bucle de "Error reloading server"
+  console.log("Sistema de auto-recarga desactivado para estabilidad en Render.");
 }
 
 app.get("/", (req, res) => {
