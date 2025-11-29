@@ -1,24 +1,25 @@
 const { createTransport } = require("nodemailer");
 
+// ✅ CONFIGURACIÓN CORRECTA PARA RENDER
 const transport = createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // true para 465, false para otros puertos
+  port: 587, // ⚡️ Puerto 587 (TLS) - Render bloquea 465
+  secure: false, // ⚡️ FALSE para puerto 587
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
   },
-  // ⚡️ ESTA ES LA SOLUCIÓN PARA RENDER ⚡️
-  // Forzamos el uso de IPv4 porque Render a veces falla con IPv6 en Gmail
-  family: 4, 
+  family: 4, // Forzar IPv4
   tls: {
     rejectUnauthorized: false
-  }
+  },
+  connectionTimeout: 10000, // 10 segundos de timeout
+  greetingTimeout: 10000,
 });
 
 const sendMail = async (to, subject, html) => {
   try {
-    console.log(`🚀 Intentando enviar a: ${to} usando IPv4...`);
+    console.log(`🚀 Intentando enviar a: ${to} usando puerto 587 (TLS)...`);
     
     const info = await transport.sendMail({
       from: `"QuickRide Support" <${process.env.MAIL_USER}>`,
@@ -26,13 +27,13 @@ const sendMail = async (to, subject, html) => {
       subject,
       html,
     });
-
+    
     console.log("✅ Correo enviado exitosamente ID:", info.messageId);
     return info;
   } catch (error) {
     console.error("❌ FALLÓ EL ENVÍO:", error.message);
-    // Lanzamos el error para que el frontend sepa que falló
-    throw new Error("No se pudo enviar el correo: " + error.message); 
+    console.error("📋 Detalles del error:", error);
+    throw new Error("No se pudo enviar el correo: " + error.message);
   }
 };
 
