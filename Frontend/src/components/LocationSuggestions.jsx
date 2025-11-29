@@ -3,7 +3,6 @@ import Console from "../utils/console";
 
 /**
  * Componente que muestra sugerencias de lugares desde Google Places API
- * Actualizado para trabajar correctamente con strings de dirección
  */
 function LocationSuggestions({
   suggestions = [],
@@ -13,6 +12,8 @@ function LocationSuggestions({
   input,
   isLoading = false,
 }) {
+  Console.log("🔍 Renderizando sugerencias:", suggestions.length);
+
   // Si está cargando
   if (isLoading) {
     return (
@@ -25,6 +26,7 @@ function LocationSuggestions({
 
   // Si no hay sugerencias
   if (suggestions.length === 0) {
+    Console.log("⚠️ No hay sugerencias para mostrar");
     return null;
   }
 
@@ -36,16 +38,17 @@ function LocationSuggestions({
         const secondaryText = suggestion.structured_formatting?.secondary_text || "";
         const placeId = suggestion.place_id || `suggestion-${index}`;
         
-        // ✅ CORRECCIÓN: Extraer la dirección completa como string
+        // ✅ Extraer la dirección completa como string
         const fullAddress = suggestion.description || suggestion;
+
+        Console.log(`📍 Sugerencia ${index}:`, fullAddress);
 
         return (
           <div
             onClick={() => {
-              Console.log("Lugar seleccionado:", suggestion);
-              Console.log("Dirección completa guardada:", fullAddress);
+              Console.log("✅ Lugar seleccionado:", fullAddress);
               
-              // ✅ CORRECCIÓN: Guardar solo el string de la dirección
+              // ✅ Guardar solo el string de la dirección
               if (input === "pickup") {
                 setPickupLocation(fullAddress);
                 setSuggestions([]);
