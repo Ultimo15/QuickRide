@@ -72,12 +72,12 @@ module.exports.createRide = async (req, res) => {
         console.log("Pickup Coordinates", pickupCoordinates);
 
         // Radio aumentado a 100km para asegurar que encuentre al conductor en pruebas
-        const searchRadius = 100; 
+        const searchRadius = 100;
 
         const captainsInRadius = await mapService.getCaptainsInTheRadius(
           pickupCoordinates.ltd,
           pickupCoordinates.lng,
-          searchRadius, 
+          searchRadius,
           vehicleType
         );
 
@@ -87,10 +87,14 @@ module.exports.createRide = async (req, res) => {
           .findOne({ _id: ride._id })
           .populate("user");
 
-        console.log(`Conductores encontrados en ${searchRadius}km: ${captainsInRadius.length}`);
-        
-        captainsInRadius.map(
-          (c) => console.log(`Notificando a: ${c.fullname.firstname} ${c.fullname.lastname}`)
+        console.log(
+          `Conductores encontrados en ${searchRadius}km: ${captainsInRadius.length}`
+        );
+
+        captainsInRadius.map((c) =>
+          console.log(
+            `Notificando a: ${c.fullname.firstname} ${c.fullname.lastname}`
+          )
         );
 
         captainsInRadius.map((captain) => {
@@ -144,19 +148,15 @@ module.exports.confirmRide = async (req, res) => {
 
     switch (rideDetails.status) {
       case "accepted":
-        return res
-          .status(400)
-          .json({
-            message:
-              "The ride is accepted by another captain before you. Better luck next time.",
-          });
+        return res.status(400).json({
+          message:
+            "The ride is accepted by another captain before you. Better luck next time.",
+        });
 
       case "ongoing":
-        return res
-          .status(400)
-          .json({
-            message: "The ride is currently ongoing with another captain.",
-          });
+        return res.status(400).json({
+          message: "The ride is currently ongoing with another captain.",
+        });
 
       case "completed":
         return res
@@ -177,13 +177,27 @@ module.exports.confirmRide = async (req, res) => {
       captain: req.captain,
     });
 
-    sendMessageToSocketId(ride.user.socketId, {
+    // 🔥 SOLUCIÓN: Obtener el socketId del usuario ANTES de emitir
+    const user = await userModel.findById(ride.user);
+
+    if (!user || !user.socketId) {
+      console.error(`❌ Usuario ${ride.user} no tiene socketId activo`);
+      // Aún así respondemos OK al conductor
+      return res.status(200).json(ride);
+    }
+
+    console.log(`✅ Emitiendo ride-confirmed a usuario: ${user._id}`);
+    console.log(`📡 Socket ID del usuario: ${user.socketId}`);
+
+    // ✅ AHORA SÍ: Emitimos al socketId correcto
+    sendMessageToSocketId(user.socketId, {
       event: "ride-confirmed",
       data: ride,
     });
 
     return res.status(200).json(ride);
   } catch (err) {
+    console.error("Error en confirmRide:", err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -236,8 +250,6 @@ module.exports.endRide = async (req, res) => {
   }
 };
 
-// --- MODIFICACIÓN IMPORTANTE ---
-// Esta función ahora IGNORA la petición de cancelar para permitir pruebas.
 module.exports.cancelRide = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -247,13 +259,13 @@ module.exports.cancelRide = async (req, res) => {
   const { rideId } = req.query;
 
   try {
-    // LOG DE DEBUG: Para que sepas que el frontend intentó cancelar
-    console.log(`⚠️ INTENTO DE CANCELACIÓN BLOQUEADO (Modo Pruebas) para el viaje: ${rideId}`);
-    
-    // NOTA: Hemos comentado la lógica real para que el viaje siga "vivo" en la DB
-    // y el conductor pueda aceptarlo aunque el pasajero "se rinda".
+    console.log(
+      `⚠️ INTENTO DE CANCELACIÓN BLOQUEADO (Modo Pruebas) para el viaje: ${rideId}`
+    );
 
-    /* const ride = await rideModel.findOneAndUpdate(
+    // NOTA: Comentado para pruebas - el viaje sigue activo para que el conductor pueda aceptarlo
+    /*
+    const ride = await rideModel.findOneAndUpdate(
       { _id: rideId },
       {
         status: "cancelled",
@@ -279,9 +291,11 @@ module.exports.cancelRide = async (req, res) => {
     return res.status(200).json(ride);
     */
 
-    // Respondemos OK para que el frontend no de error, pero no cancelamos nada.
-    return res.status(200).json({ message: "Cancelación ignorada para permitir aceptación del conductor" });
-
+    return res
+      .status(200)
+      .json({
+        message: "Cancelación ignorada para permitir aceptación del conductor",
+      });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
