@@ -1,122 +1,195 @@
-import { Clock, Users, Check } from 'lucide-react';
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock, Users, Check, Zap } from "lucide-react";
+import CarMarker from "../assets/icons/CarMarker";
+import BikeMarker from "../assets/icons/BikeMarker";
 
 /**
- * 🚗 SELECTOR DE VEHÍCULO MODERNO
- * Ubicación: Frontend/src/components/ModernVehicleSelector.jsx
+ * ModernVehicleSelector - Selector de vehículo profesional estilo Uber
+ * Permite elegir entre Carro y Moto con animaciones y diseño atractivo
  */
-
-function ModernVehicleSelector({ 
-  selectedVehicle, 
-  fare, 
-  onSelect, 
-  estimatedTime 
+function ModernVehicleSelector({
+  selectedVehicle,
+  fare,
+  onSelect,
+  estimatedTime,
 }) {
   const vehicles = [
     {
-      id: 'car',
-      name: 'Carro',
-      description: 'Cómodo y espacioso',
-      image: '/car.png',
+      id: "car",
+      name: "Carro",
+      description: "Cómodo y espacioso",
+      icon: <CarMarker className="w-16 h-16" color="#000000" />,
       capacity: 4,
-      icon: '🚗',
-      features: ['Aire acondicionado', 'Más espacio']
+      emoji: "🚗",
+      features: [
+        { label: "Aire acondicionado", icon: null },
+        { label: "Más espacio", icon: null },
+      ],
     },
     {
-      id: 'bike',
-      name: 'Moto',
-      description: 'Rápido y económico',
-      image: '/bike.webp',
+      id: "bike",
+      name: "Moto",
+      description: "Rápido y económico",
+      icon: <BikeMarker className="w-16 h-16" color="#000000" />,
       capacity: 1,
-      icon: '🏍️',
-      features: ['Más rápido', 'Evita el tráfico']
+      emoji: "🏍️",
+      features: [
+        { label: "Más rápido", icon: <Zap className="w-3 h-3" /> },
+        { label: "Evita el tráfico", icon: null },
+      ],
     },
   ];
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      className="space-y-4"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      {/* TÍTULO */}
       <div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-1">Elige tu vehículo</h3>
-        <p className="text-sm text-gray-500">Selecciona el que mejor se adapte a ti</p>
+        <motion.h3
+          className="text-2xl font-bold text-black mb-1"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          Elige tu vehículo
+        </motion.h3>
+        <motion.p
+          className="text-sm text-uber-medium-gray"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          Selecciona el que mejor se adapte a ti
+        </motion.p>
       </div>
-      
+
+      {/* TARJETAS DE VEHÍCULOS */}
       <div className="space-y-3">
-        {vehicles.map((vehicle) => {
+        {vehicles.map((vehicle, index) => {
           const isSelected = selectedVehicle === vehicle.id;
           const price = fare[vehicle.id] || 0;
-          
+
           return (
-            <button
+            <motion.button
               key={vehicle.id}
               onClick={() => onSelect(vehicle.id)}
-              className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all ${
+              className={`w-full flex items-center gap-4 p-5 rounded-uber-xl border-2 transition-all ${
                 isSelected
-                  ? 'border-black bg-gray-50 shadow-2xl scale-[1.02]'
-                  : 'border-gray-200 hover:border-gray-300 hover:shadow-lg'
+                  ? "border-black bg-uber-extra-light-gray shadow-uber-xl"
+                  : "border-uber-light-gray hover:border-uber-medium-gray hover:shadow-uber-lg bg-white"
               }`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + index * 0.1, type: "spring", stiffness: 200 }}
+              whileHover={{ scale: isSelected ? 1 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              {/* Icono del vehículo */}
-              <div className={`relative flex-shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center ${
-                isSelected ? 'bg-black' : 'bg-gray-100'
-              }`}>
-                <span className="text-4xl">{vehicle.icon}</span>
-                {isSelected && (
-                  <div className="absolute -top-2 -right-2 w-7 h-7 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                    <Check className="w-4 h-4 text-white" />
-                  </div>
-                )}
+              {/* ICONO DEL VEHÍCULO */}
+              <div
+                className={`relative flex-shrink-0 w-20 h-20 rounded-uber-lg flex items-center justify-center transition-all ${
+                  isSelected ? "bg-black" : "bg-uber-extra-light-gray"
+                }`}
+              >
+                <div className={isSelected ? "brightness-0 invert" : ""}>
+                  {vehicle.icon}
+                </div>
+
+                {/* CHECK ICON */}
+                <AnimatePresence>
+                  {isSelected && (
+                    <motion.div
+                      className="absolute -top-2 -right-2 w-7 h-7 bg-uber-green rounded-full flex items-center justify-center shadow-uber"
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 180 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    >
+                      <Check className="w-4 h-4 text-white" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              
-              {/* Info del vehículo */}
+
+              {/* INFO DEL VEHÍCULO */}
               <div className="flex-1 text-left">
-                <h4 className="font-bold text-lg text-gray-900 mb-0.5">{vehicle.name}</h4>
-                <p className="text-sm text-gray-500 mb-2">{vehicle.description}</p>
-                
-                {/* Features */}
-                <div className="flex flex-wrap gap-2">
+                <h4 className="font-bold text-lg text-black mb-0.5">
+                  {vehicle.name} {vehicle.emoji}
+                </h4>
+                <p className="text-sm text-uber-medium-gray mb-2">
+                  {vehicle.description}
+                </p>
+
+                {/* FEATURES */}
+                <div className="flex flex-wrap gap-2 mb-2">
                   {vehicle.features.map((feature, idx) => (
                     <span
                       key={idx}
-                      className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full"
+                      className={`text-xs px-2.5 py-1 rounded-uber-md flex items-center gap-1 ${
+                        isSelected
+                          ? "bg-black text-white"
+                          : "bg-uber-light-gray text-uber-dark-gray"
+                      }`}
                     >
-                      {feature}
+                      {feature.icon}
+                      {feature.label}
                     </span>
                   ))}
                 </div>
-                
-                {/* Info adicional */}
-                <div className="flex items-center gap-3 mt-2">
+
+                {/* INFO ADICIONAL */}
+                <div className="flex items-center gap-3">
                   {estimatedTime && (
-                    <span className="flex items-center gap-1 text-xs text-gray-600">
-                      <Clock className="w-3 h-3" />
+                    <span className="flex items-center gap-1 text-xs text-uber-medium-gray font-medium">
+                      <Clock className="w-3.5 h-3.5 text-uber-green" />
                       {estimatedTime} min
                     </span>
                   )}
-                  <span className="flex items-center gap-1 text-xs text-gray-600">
-                    <Users className="w-3 h-3" />
-                    {vehicle.capacity} {vehicle.capacity === 1 ? 'persona' : 'personas'}
+                  <span className="flex items-center gap-1 text-xs text-uber-medium-gray font-medium">
+                    <Users className="w-3.5 h-3.5 text-uber-medium-gray" />
+                    {vehicle.capacity}{" "}
+                    {vehicle.capacity === 1 ? "persona" : "personas"}
                   </span>
                 </div>
               </div>
-              
-              {/* Precio */}
+
+              {/* PRECIO */}
               <div className="text-right flex-shrink-0">
-                <p className="text-2xl font-bold text-gray-900">
-                  ${price.toLocaleString('es-CO')}
-                </p>
-                <p className="text-xs text-gray-500">COP</p>
+                <motion.div
+                  key={`price-${vehicle.id}-${isSelected}`}
+                  initial={{ scale: 1 }}
+                  animate={isSelected ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <p className={`text-2xl font-bold ${
+                    isSelected ? "text-uber-green" : "text-black"
+                  }`}>
+                    ${price.toLocaleString("es-CO")}
+                  </p>
+                  <p className="text-xs text-uber-medium-gray font-medium">COP</p>
+                </motion.div>
               </div>
-            </button>
+            </motion.button>
           );
         })}
       </div>
 
       {/* INFO DE PRECIOS */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-        <p className="text-xs text-yellow-800">
-          ℹ️ Los precios pueden variar según la distancia y el tráfico. El precio final se confirmará al finalizar el viaje.
+      <motion.div
+        className="bg-uber-light-gray/30 border border-uber-light-gray rounded-uber-lg p-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
+        <p className="text-xs text-uber-dark-gray leading-relaxed">
+          ℹ️ Los precios pueden variar según la distancia y el tráfico. El
+          precio final se confirmará al finalizar el viaje.
         </p>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
