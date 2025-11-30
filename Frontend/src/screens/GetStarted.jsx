@@ -1,45 +1,123 @@
 import { useEffect } from "react";
-import { ArrowRight } from "lucide-react";
-import { Button } from "../components/index";
-import background from "/get_started_illustration.jpg";
+import { motion } from "framer-motion";
+import { ArrowRight, User, Car } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import logo from '/logo-quickride.png'
+import Button from "../components/Button";
+import background from "/get_started_illustration.jpg";
+import logo from "/logo-quickride.png";
 
+/**
+ * Pantalla GetStarted - Bienvenida Profesional Estilo Uber
+ */
 function GetStarted() {
   const navigate = useNavigate();
+
   useEffect(() => {
     const userData = localStorage.getItem("userData");
     if (userData) {
-      if (JSON.parse(userData).type == "user") {
+      const parsedData = JSON.parse(userData);
+      if (parsedData.type === "user") {
         navigate("/home");
-      } else if (JSON.parse(userData).type == "captain") {
+      } else if (parsedData.type === "captain") {
         navigate("/captain/home");
       }
     }
-  }, []);
+  }, [navigate]);
+
+  // Animaciones
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+        delayChildren: 0.3,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: "easeOut" },
+    },
+  };
+
   return (
     <div
-      className="flex flex-col justify-between w-full h-full bg-cover bg-center"
+      className="flex flex-col justify-between w-full h-dvh bg-cover bg-center relative"
       style={{ backgroundImage: `url(${background})` }}
     >
-      <img
-        className="h-10 object-contain m-4 self-start"
-        src={logo}
-        alt="Logo"
-      />
-      
-      <div
-        className="flex flex-col bg-white p-4 pb-8 gap-8 rounded-t-lg
-      "
+      {/* Overlay oscuro para mejor legibilidad */}
+      <div className="absolute inset-0 bg-black/30" />
+
+      {/* Logo */}
+      <motion.div
+        className="relative z-10 p-6"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
       >
-        <h1 className="text-2xl font-semibold">Pide tu viaje ahora con Rapidito</h1>
-        <Button
-          title={"Continuar"}
-          path={"/login"}
-          type={"link"}
-          icon={<ArrowRight />}
+        <img
+          className="h-12 object-contain drop-shadow-lg"
+          src={logo}
+          alt="QuickRide Logo"
         />
-      </div>
+      </motion.div>
+
+      {/* Panel inferior */}
+      <motion.div
+        className="relative z-10 bg-white rounded-t-3xl px-6 py-8 shadow-uber-xl"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Título */}
+        <motion.div variants={itemVariants} className="mb-8">
+          <h1 className="text-3xl font-bold text-black mb-3 leading-tight">
+            Viaja rápido y seguro
+          </h1>
+          <p className="text-uber-medium-gray text-base">
+            Solicita un viaje o conviértete en conductor y empieza a ganar dinero
+          </p>
+        </motion.div>
+
+        {/* Botones de acción */}
+        <motion.div variants={itemVariants} className="space-y-3 mb-6">
+          {/* Botón de Usuario */}
+          <Button
+            title="Solicitar un viaje"
+            path="/login"
+            type="link"
+            variant="primary"
+            size="lg"
+            icon={<User className="w-5 h-5" />}
+            fullWidth
+          />
+
+          {/* Botón de Conductor */}
+          <Button
+            title="Convertirse en conductor"
+            path="/captain/login"
+            type="link"
+            variant="outline"
+            size="lg"
+            icon={<Car className="w-5 h-5" />}
+            fullWidth
+          />
+        </motion.div>
+
+        {/* Footer con términos */}
+        <motion.p
+          variants={itemVariants}
+          className="text-center text-xs text-uber-medium-gray"
+        >
+          Al continuar, aceptas nuestros{" "}
+          <span className="underline font-medium">Términos y Condiciones</span>
+        </motion.p>
+      </motion.div>
     </div>
   );
 }
