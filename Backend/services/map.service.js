@@ -2,35 +2,34 @@ const axios = require("axios");
 const captainModel = require("../models/captain.model");
 
 // ============================================
-// ZONA DE OPERACIÓN: FRONTERA COLOMBO-VENEZOLANA
+// ZONA DE OPERACIÓN: SAN ANTONIO DEL TÁCHIRA Y ALREDEDORES
 // ============================================
 const OPERATION_ZONE = {
-  // Coordenadas aproximadas de la zona fronteriza
-  // Ajusta estos valores según tu área exacta
-  minLat: 7.6,    // Sur (cerca de Cúcuta sur)
-  maxLat: 8.0,    // Norte (hasta San Antonio/San Cristóbal)
-  minLng: -72.7,  // Oeste
-  maxLng: -72.2,  // Este
+  // ✅ Zona centrada en San Antonio del Táchira, Venezuela
+  minLat: 7.7,    // Sur
+  maxLat: 7.9,    // Norte
+  minLng: -72.5,  // Oeste
+  maxLng: -72.4,  // Este
+};
+
+// ✅ Coordenadas por defecto (San Antonio del Táchira)
+const DEFAULT_LOCATION = {
+  lat: 7.8144,
+  lng: -72.4431,
 };
 
 // Ciudades permitidas para el filtro de sugerencias
 const ALLOWED_CITIES = [
-  "cúcuta",
-  "villa del rosario",
-  "los patios",
-  "la parada",
   "san antonio",
   "san antonio del táchira",
   "ureña",
-  "san cristóbal",
+  "capacho",
+  "la fría",
   "rubio",
-  "peracal",
-  "tienditas",
-  "palotal",
+  "san cristóbal",
   "táchira",
-  "llano de jorge",
-  "brisas de llano jorge",
-  "la sabana",
+  "venezuela",
+  "cúcuta", // Cerca de la frontera
 ];
 
 // ✅ Función para verificar si una coordenada está en la zona
@@ -43,9 +42,9 @@ const isInOperationZone = (lat, lng) => {
   );
 };
 
-// Fórmula matemática para calcular distancia
+// Fórmula matemática para calcular distancia (Haversine)
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-  const R = 6371;
+  const R = 6371; // Radio de la Tierra en km
   const dLat = deg2rad(lat2 - lat1);
   const dLon = deg2rad(lon2 - lon1);
   const a =
@@ -65,9 +64,11 @@ function deg2rad(deg) {
 // ✅ OBTENER COORDENADAS CON VALIDACIÓN DE ZONA
 module.exports.getAddressCoordinate = async (address) => {
   const apiKey = process.env.GOOGLE_MAPS_API;
+  
+  // ✅ Bias hacia San Antonio del Táchira
   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
     address
-  )}&key=${apiKey}`;
+  )}&components=country:VE&region=ve&key=${apiKey}`;
 
   try {
     const response = await axios.get(url);
@@ -76,18 +77,18 @@ module.exports.getAddressCoordinate = async (address) => {
 
       // ✅ VALIDAR QUE ESTÉ EN LA ZONA DE OPERACIÓN
       if (!isInOperationZone(location.lat, location.lng)) {
-        console.error(
-          `❌ Ubicación fuera de zona: ${location.lat}, ${location.lng}`
+        console.warn(
+          `⚠️ Ubicación fuera de zona: ${location.lat}, ${location.lng}`
         );
-        throw new Error(
-          "Esta ubicación está fuera de nuestra zona de operación. Solo operamos en la frontera colombo-venezolana (Cúcuta, Villa del Rosario, Los Patios, San Antonio, Ureña, San Cristóbal, etc.)"
-        );
+        // Permitir pero mostrar advertencia
+        console.log("📍 Permitiendo ubicación fuera de zona de operación principal");
+      } else {
+        console.log(`✅ Ubicación válida en zona: ${location.lat}, ${location.lng}`);
       }
 
-      console.log(`✅ Ubicación válida: ${location.lat}, ${location.lng}`);
       return { ltd: location.lat, lng: location.lng };
     } else {
-      throw new Error("Unable to fetch coordinates");
+      throw new Error("No se pudieron obtener las coordenadas de esta dirección");
     }
   } catch (error) {
     console.error("Error en getAddressCoordinate:", error.message);
@@ -104,7 +105,7 @@ module.exports.getDistanceTime = async (origin, destination) => {
   const apiKey = process.env.GOOGLE_MAPS_API;
   const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(
     origin
-  )}&destinations=${encodeURIComponent(destination)}&key=${apiKey}`;
+  )}&destinations=${encodeURIComponent(destination)}&mode=driving&language=es&key=${apiKey}`;
 
   try {
     const response = await axios.get(url);
@@ -112,13 +113,85 @@ module.exports.getDistanceTime = async (origin, destination) => {
       if (response.data.rows[0].elements[0].status === "ZERO_RESULTS") {
         throw new Error("No se encontraron rutas entre estas ubicaciones");
       }
-      return response.data.rows[0].elements[0];
+
+      const element = response.data.rows[0].elements[0];
+      
+      console.log(`📏 Distancia: ${element.distance.text} | Tiempo: ${element.duration.text}`);
+      
+      return element;
     } else {
       throw new Error("Unable to fetch distance and time");
     }
   } catch (err) {
     console.error("Error en getDistanceTime:", err.message);
     throw err;
+  }
+};
+
+// ✅ NUEVO: CALCULAR TIEMPO ESTIMADO DE LLEGADA DEL CONDUCTOR
+module.exports.getEstimatedArrival = async (captainLocation, pickupLocation) => {
+  if (!captainLocation || !pickupLocation) {
+    throw new Error("Captain location and pickup location are required");
+  }
+
+  const apiKey = process.env.GOOGLE_MAPS_API;
+  
+  // Convertir coordenadas a string
+  const origin = `${captainLocation.lat},${captainLocation.lng}`;
+  const destination = `${pickupLocation.lat},${pickupLocation.lng}`;
+  
+  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&mode=driving&language=es&key=${apiKey}`;
+
+  try {
+    const response = await axios.get(url);
+    if (response.data.status === "OK") {
+      const element = response.data.rows[0].elements[0];
+      
+      if (element.status === "ZERO_RESULTS") {
+        // Si no hay ruta, calcular distancia en línea recta
+        const distance = getDistanceFromLatLonInKm(
+          captainLocation.lat,
+          captainLocation.lng,
+          pickupLocation.lat,
+          pickupLocation.lng
+        );
+        
+        // Estimar tiempo: 30 km/h promedio en ciudad
+        const estimatedMinutes = Math.ceil((distance / 30) * 60);
+        
+        return {
+          distance: { value: distance * 1000, text: `${distance.toFixed(1)} km` },
+          duration: { value: estimatedMinutes * 60, text: `${estimatedMinutes} min` },
+          estimated: true
+        };
+      }
+      
+      return {
+        distance: element.distance,
+        duration: element.duration,
+        estimated: false
+      };
+    } else {
+      throw new Error("No se pudo calcular el tiempo de llegada");
+    }
+  } catch (err) {
+    console.error("Error en getEstimatedArrival:", err.message);
+    
+    // Fallback: cálculo manual
+    const distance = getDistanceFromLatLonInKm(
+      captainLocation.lat,
+      captainLocation.lng,
+      pickupLocation.lat,
+      pickupLocation.lng
+    );
+    
+    const estimatedMinutes = Math.ceil((distance / 30) * 60);
+    
+    return {
+      distance: { value: distance * 1000, text: `${distance.toFixed(1)} km` },
+      duration: { value: estimatedMinutes * 60, text: `${estimatedMinutes} min` },
+      estimated: true
+    };
   }
 };
 
@@ -130,21 +203,23 @@ module.exports.getAutoCompleteSuggestions = async (input) => {
 
   const apiKey = process.env.GOOGLE_MAPS_API;
   
-  // ✅ Centrado en Cúcuta con radio de 50km y limitado a Colombia/Venezuela
+  // ✅ Centrado en San Antonio del Táchira con radio de 30km
   const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
     input
-  )}&key=${apiKey}&components=country:co|country:ve&location=7.889391,-72.508450&radius=50000&language=es`;
+  )}&key=${apiKey}&components=country:ve&location=${DEFAULT_LOCATION.lat},${DEFAULT_LOCATION.lng}&radius=30000&language=es`;
 
   try {
     const response = await axios.get(url);
     if (response.data.status === "OK") {
-      // ✅ FILTRAR SOLO CIUDADES PERMITIDAS
+      // ✅ FILTRAR SOLO CIUDADES PERMITIDAS (más permisivo)
       const filteredSuggestions = response.data.predictions.filter(
         (prediction) => {
           const description = prediction.description.toLowerCase();
 
-          // Verificar si contiene alguna ciudad permitida
-          return ALLOWED_CITIES.some((city) => description.includes(city));
+          // Verificar si contiene alguna ciudad permitida o si menciona Táchira/Venezuela
+          return ALLOWED_CITIES.some((city) => description.includes(city)) ||
+                 description.includes("táchira") ||
+                 description.includes("venezuela");
         }
       );
 
@@ -153,8 +228,10 @@ module.exports.getAutoCompleteSuggestions = async (input) => {
       );
 
       if (filteredSuggestions.length === 0) {
-        // Retornar array vacío en lugar de error para mejor UX
-        return [];
+        // Si no hay resultados filtrados, devolver todos (más permisivo)
+        return response.data.predictions
+          .map((prediction) => prediction.description)
+          .filter((value) => value);
       }
 
       return filteredSuggestions
@@ -171,7 +248,7 @@ module.exports.getAutoCompleteSuggestions = async (input) => {
   }
 };
 
-// ✅ OBTENER CONDUCTORES EN RADIO
+// ✅ OBTENER CONDUCTORES EN RADIO (ACTUALIZADO)
 module.exports.getCaptainsInTheRadius = async (
   ltd,
   lng,
@@ -183,25 +260,24 @@ module.exports.getCaptainsInTheRadius = async (
       `📍 Buscando conductores: ${ltd}, ${lng} | Radio: ${radius}km | Tipo: ${vehicleType}`
     );
 
-    // Normalizar tipo de vehículo (moto/motorcycle -> bike)
-    const normalizedType =
-      vehicleType === "moto" || vehicleType === "motorcycle"
-        ? "bike"
-        : vehicleType;
+    // Normalizar tipo de vehículo
+    const normalizedType = vehicleType === "bike" || vehicleType === "moto" || vehicleType === "motorcycle"
+      ? "bike"
+      : "car";
 
-    // Buscar conductores activos con el tipo de vehículo correcto
+    // ✅ Buscar conductores ONLINE (no "active", sino "online")
     const captains = await captainModel
       .find({
-        status: "active",
-        "vehicle.type": { $in: [normalizedType, vehicleType] }, // Buscar por ambos
+        status: "online", // ✅ Cambio importante: buscar por "online"
+        "vehicle.type": normalizedType,
       })
       .lean();
 
-    console.log(`👥 Conductores activos encontrados: ${captains.length}`);
+    console.log(`👥 Conductores online encontrados: ${captains.length}`);
 
     if (captains.length === 0) {
       console.warn(
-        `⚠️ No hay conductores activos de tipo "${vehicleType}" en la base de datos`
+        `⚠️ No hay conductores online de tipo "${vehicleType}"`
       );
       return [];
     }
@@ -255,3 +331,7 @@ module.exports.getCaptainsInTheRadius = async (
     throw new Error("Error finding captains in radius: " + error.message);
   }
 };
+
+// ✅ EXPORTAR CONSTANTES
+module.exports.DEFAULT_LOCATION = DEFAULT_LOCATION;
+module.exports.OPERATION_ZONE = OPERATION_ZONE;
