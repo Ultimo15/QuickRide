@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import Button from "./Button";
 
-export const Alert = ({ heading, text, isVisible, onClose, type }) => {
+// ✅ CAMBIO: Se quitó "export const" de aquí
+const Alert = ({ heading, text, isVisible, onClose, type }) => {
     const [shouldRender, setShouldRender] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
     
@@ -36,3 +37,6 @@ export const Alert = ({ heading, text, isVisible, onClose, type }) => {
         </div>
     );
 };
+
+// ✅ CAMBIO: Se agregó export default al final
+export default Alert;
