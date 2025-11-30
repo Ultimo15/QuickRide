@@ -1,54 +1,119 @@
-const mapService = require("../services/map.service");
-const { validationResult } = require("express-validator");
+const axios = require('axios');
 
-module.exports.getCoordinates = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
+/**
+ * 🗺️ CONTROLADOR DE MAPAS - ACTUALIZADO
+ * Ubicación: Backend/controllers/map.controller.js
+ * 
+ * AGREGAR ESTA FUNCIÓN AL ARCHIVO EXISTENTE
+ */
 
-  const { address } = req.query;
-
+// ==========================================
+// 🆕 OBTENER COORDENADAS DESDE DIRECCIÓN
+// ==========================================
+exports.getCoordinatesFromAddress = async (req, res) => {
   try {
-    const coordinates = await mapService.getAddressCoordinate(address);
-    res.status(200).json(coordinates);
+    const { address } = req.query;
+
+    if (!address) {
+      return res.status(400).json({
+        success: false,
+        message: 'La dirección es requerida',
+      });
+    }
+
+    console.log('📍 Obteniendo coordenadas para:', address);
+
+    // Llamar a Google Geocoding API
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json`,
+      {
+        params: {
+          address: address,
+          key: process.env.GOOGLE_MAPS_API,
+        },
+      }
+    );
+
+    if (response.data.status === 'OK' && response.data.results.length > 0) {
+      const location = response.data.results[0].geometry.location;
+      
+      console.log('✅ Coordenadas encontradas:', location);
+
+      return res.status(200).json({
+        success: true,
+        lat: location.lat,
+        lng: location.lng,
+        formatted_address: response.data.results[0].formatted_address,
+      });
+    } else if (response.data.status === 'ZERO_RESULTS') {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontraron coordenadas para esta dirección',
+      });
+    } else {
+      console.error('❌ Error de Google Maps API:', response.data.status);
+      return res.status(500).json({
+        success: false,
+        message: `Error de Google Maps: ${response.data.status}`,
+      });
+    }
   } catch (error) {
-    res.status(404).json({ message: "Coordinates not found", error: error });
+    console.error('❌ Error obteniendo coordenadas:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-module.exports.getDistanceTime = async (req, res) => {
+// ==========================================
+// 🆕 OBTENER DIRECCIÓN DESDE COORDENADAS
+// ==========================================
+exports.getAddressFromCoordinates = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    const { lat, lng } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitud y longitud son requeridas',
+      });
     }
 
-    const { origin, destination } = req.query;
+    console.log('🗺️ Obteniendo dirección para:', lat, lng);
 
-    const distanceTime = await mapService.getDistanceTime(origin, destination);
+    // Llamar a Google Reverse Geocoding API
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json`,
+      {
+        params: {
+          latlng: `${lat},${lng}`,
+          key: process.env.GOOGLE_MAPS_API,
+        },
+      }
+    );
 
-    res.status(200).json(distanceTime);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
+    if (response.data.status === 'OK' && response.data.results.length > 0) {
+      const address = response.data.results[0].formatted_address;
+      
+      console.log('✅ Dirección encontrada:', address);
 
-module.exports.getAutoCompleteSuggestions = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(200).json({
+        success: true,
+        address: address,
+        components: response.data.results[0].address_components,
+      });
+    } else {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontró dirección para estas coordenadas',
+      });
     }
-
-    const { input } = req.query;
-
-    const suggestions = await mapService.getAutoCompleteSuggestions(input);
-
-    res.status(200).json(suggestions);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+  } catch (error) {
+    console.error('❌ Error obteniendo dirección:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
