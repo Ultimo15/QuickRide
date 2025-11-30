@@ -4,24 +4,36 @@ const authMiddleware = require('../middlewares/auth.middleware');
 const mapController = require('../controllers/map.controller');
 
 /**
- * 🗺️ RUTAS DE MAPAS - ACTUALIZADAS
- * Ubicación: Backend/routes/map.routes.js
+ * 🗺️ RUTAS DE MAPAS - COMPLETAS
+ * Ubicación: Backend/routes/maps.routes.js
  * 
- * AGREGAR ESTAS RUTAS AL ARCHIVO EXISTENTE
+ * ⚠️ ESTE ES EL ARCHIVO COMPLETO
+ * Reemplaza todo el contenido del archivo maps.routes.js con este código
  */
 
 // ==========================================
-// RUTAS EXISTENTES (mantenerlas)
-// ==========================================
-// router.get('/get-suggestions', authMiddleware, mapController.getSuggestions);
-// router.get('/get-distance-time', authMiddleware, mapController.getDistanceTime);
-// ... otras rutas existentes
-
-// ==========================================
-// 🆕 NUEVAS RUTAS
+// RUTAS EXISTENTES
 // ==========================================
 
-// Obtener coordenadas desde dirección
+// Obtener sugerencias de lugares
+router.get(
+  '/get-suggestions',
+  authMiddleware,
+  mapController.getAutoCompleteSuggestions
+);
+
+// Obtener distancia y tiempo entre dos puntos
+router.get(
+  '/get-distance-time',
+  authMiddleware,
+  mapController.getDistanceTime
+);
+
+// ==========================================
+// 🆕 NUEVAS RUTAS NECESARIAS
+// ==========================================
+
+// Obtener coordenadas desde dirección (para crear viajes)
 router.get(
   '/get-coordinates',
   authMiddleware,
