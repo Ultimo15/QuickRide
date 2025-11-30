@@ -1,5 +1,6 @@
 const captainModel = require("../models/captain.model");
 
+// ✅ CREAR CAPITÁN CON NUEVOS CAMPOS
 module.exports.createCaptain = async (
   firstname,
   lastname,
@@ -7,9 +8,11 @@ module.exports.createCaptain = async (
   password,
   phone,
   color,
-  number,
+  plateOrNumber, // ✅ Acepta "plate" o "number"
   capacity,
-  type
+  type,
+  brand = "No especificado",
+  model = "No especificado"
 ) => {
   if (!firstname || !email || !password) {
     throw new Error("All fields are required");
@@ -27,9 +30,11 @@ module.exports.createCaptain = async (
     phone,
     vehicle: {
       color,
-      number,
+      plate: plateOrNumber, // ✅ Guardar como "plate"
       capacity,
       type,
+      brand, // ✅ Nuevo campo
+      model, // ✅ Nuevo campo
     },
   });
 
