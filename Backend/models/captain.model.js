@@ -34,16 +34,22 @@ const captainSchema = new mongoose.Schema(
     socketId: {
       type: String,
     },
+    // ✅ NUEVO: Foto de perfil del capitán
+    profilePhoto: {
+      type: String,
+      default: null, // URL de la imagen o null si no tiene
+    },
     rides: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Ride",
       },
     ],
+    // ✅ ACTUALIZADO: Estado con online/offline/busy
     status: {
       type: String,
-      enum: ["active", "inactive"],
-      default: "inactive",
+      enum: ["online", "offline", "busy"],
+      default: "offline",
     },
     vehicle: {
       color: {
@@ -51,10 +57,23 @@ const captainSchema = new mongoose.Schema(
         required: true,
         minlength: [3, "Color must be at least 3 characters long"],
       },
-      number: {
+      // ✅ ACTUALIZADO: "plate" en lugar de "number"
+      plate: {
         type: String,
         required: true,
-        minlength: [3, "Plate must be at least 3 characters long"],
+        minlength: [6, "Plate must be at least 6 characters long"],
+        maxlength: [10, "Plate must not exceed 10 characters"],
+        uppercase: true,
+      },
+      // ✅ NUEVO: Marca del vehículo
+      brand: {
+        type: String,
+        default: "No especificado",
+      },
+      // ✅ NUEVO: Modelo del vehículo
+      model: {
+        type: String,
+        default: "No especificado",
       },
       capacity: {
         type: Number,
@@ -63,8 +82,8 @@ const captainSchema = new mongoose.Schema(
       type: {
         type: String,
         required: true,
-        // ✅ SIN "AUTO" - Solo car y bike (moto/motorcycle son alias)
-        enum: ["car", "bike", "moto", "motorcycle"],
+        // ✅ ACTUALIZADO: Solo "car" y "bike" (sin "auto")
+        enum: ["car", "bike"],
       },
     },
     location: {
@@ -91,11 +110,23 @@ const captainSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // ✅ ACTUALIZADO: Sistema de calificaciones mejorado
     rating: {
-      type: Number,
-      default: 5,
-      min: 0,
-      max: 5,
+      average: {
+        type: Number,
+        default: 5,
+        min: 1,
+        max: 5,
+      },
+      count: {
+        type: Number,
+        default: 0,
+      },
+    },
+    // ✅ NUEVO: Última vez que estuvo online
+    lastOnline: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }
@@ -117,6 +148,26 @@ captainSchema.methods.generateAuthToken = function () {
 
 captainSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
+};
+
+// ✅ NUEVO: Método para actualizar calificación promedio
+captainSchema.methods.updateRating = function (newRating) {
+  const totalRatings = this.rating.average * this.rating.count;
+  this.rating.count += 1;
+  this.rating.average = (totalRatings + newRating) / this.rating.count;
+  return this.save();
+};
+
+// ✅ NUEVO: Método para cambiar estado online/offline
+captainSchema.methods.toggleOnlineStatus = function () {
+  if (this.status === "online") {
+    this.status = "offline";
+    this.lastOnline = new Date();
+  } else if (this.status === "offline") {
+    this.status = "online";
+  }
+  // Si está "busy", no se puede cambiar manualmente
+  return this.save();
 };
 
 module.exports = mongoose.model("Captain", captainSchema);
