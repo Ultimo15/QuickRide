@@ -42,18 +42,26 @@ module.exports.verifyEmail = asyncHandler(async (req, res) => {
 
   const { token } = req.body;
   if (!token) {
-    return res.status(400).json({ message: "Invalid verification link", error: "Token is required" });
+    return res.status(400).json({ 
+      message: "Invalid verification link", 
+      error: "Token is required" 
+    });
   }
 
   let decodedTokenData = jwt.verify(token, process.env.JWT_SECRET);
   if (!decodedTokenData || decodedTokenData.purpose !== "email-verification") {
-    return res.status(400).json({ message: "You're trying to use an invalid or expired verification link", error: "Invalid token" });
+    return res.status(400).json({ 
+      message: "You're trying to use an invalid or expired verification link", 
+      error: "Invalid token" 
+    });
   }
 
   let user = await userModel.findOne({ _id: decodedTokenData.id });
 
   if (!user) {
-    return res.status(404).json({ message: "User not found. Please ask for another verification link." });
+    return res.status(404).json({ 
+      message: "User not found. Please ask for another verification link." 
+    });
   }
 
   if (user.emailVerified) {
@@ -68,6 +76,7 @@ module.exports.verifyEmail = asyncHandler(async (req, res) => {
   });
 });
 
+// ✅ LOGIN CON INFORMACIÓN COMPLETA
 module.exports.loginUser = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -101,6 +110,10 @@ module.exports.loginUser = asyncHandler(async (req, res) => {
       },
       email: user.email,
       phone: user.phone,
+      profilePhoto: user.profilePhoto, // ✅ Incluir foto
+      rating: user.rating, // ✅ Incluir calificación
+      completedRides: user.completedRides, // ✅ Incluir estadísticas
+      cancelledRides: user.cancelledRides,
       rides: user.rides,
       socketId: user.socketId,
       emailVerified: user.emailVerified,
@@ -112,26 +125,50 @@ module.exports.userProfile = asyncHandler(async (req, res) => {
   res.status(200).json({ user: req.user });
 });
 
+// ✅ ACTUALIZAR PERFIL CON FOTO
 module.exports.updateUserProfile = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json(errors.array());
   }
 
-  const { fullname,  phone } = req.body;
+  const { fullname, phone, profilePhoto } = req.body;
+
+  const updateData = {};
+  
+  if (fullname) updateData.fullname = fullname;
+  if (phone) updateData.phone = phone;
+  if (profilePhoto !== undefined) updateData.profilePhoto = profilePhoto;
 
   const updatedUserData = await userModel.findOneAndUpdate(
     { _id: req.user._id },
-    {
-      fullname: fullname,
-      phone,
-    },
+    updateData,
     { new: true }
   );
 
   res
     .status(200)
     .json({ message: "Profile updated successfully", user: updatedUserData });
+});
+
+// ✅ NUEVO: SUBIR FOTO DE PERFIL
+module.exports.uploadProfilePhoto = asyncHandler(async (req, res) => {
+  const { photoUrl } = req.body;
+
+  if (!photoUrl) {
+    return res.status(400).json({ message: "Photo URL is required" });
+  }
+
+  const user = await userModel.findByIdAndUpdate(
+    req.user._id,
+    { profilePhoto: photoUrl },
+    { new: true }
+  );
+
+  res.status(200).json({
+    message: "Profile photo updated successfully",
+    profilePhoto: user.profilePhoto,
+  });
 });
 
 module.exports.logoutUser = asyncHandler(async (req, res) => {
@@ -170,10 +207,11 @@ module.exports.resetPassword = asyncHandler(async (req, res) => {
   }
 
   const user = await userModel.findById(payload.id);
-  if (!user)
+  if (!user) {
     return res.status(404).json({
       message: "User not found. Please check your credentials and try again",
     });
+  }
 
   user.password = await userModel.hashPassword(password);
   await user.save();
