@@ -39,6 +39,33 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // ✅ NUEVO: Foto de perfil del usuario
+    profilePhoto: {
+      type: String,
+      default: null, // URL de la imagen o null si no tiene
+    },
+    // ✅ NUEVO: Sistema de calificaciones
+    rating: {
+      average: {
+        type: Number,
+        default: 5,
+        min: 1,
+        max: 5,
+      },
+      count: {
+        type: Number,
+        default: 0,
+      },
+    },
+    // ✅ NUEVO: Contador de viajes
+    completedRides: {
+      type: Number,
+      default: 0,
+    },
+    cancelledRides: {
+      type: Number,
+      default: 0,
+    },
     rides: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -61,6 +88,14 @@ userSchema.methods.generateAuthToken = function () {
 
 userSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
+};
+
+// ✅ NUEVO: Método para actualizar calificación promedio
+userSchema.methods.updateRating = function (newRating) {
+  const totalRatings = this.rating.average * this.rating.count;
+  this.rating.count += 1;
+  this.rating.average = (totalRatings + newRating) / this.rating.count;
+  return this.save();
 };
 
 module.exports = mongoose.model("User", userSchema);
