@@ -2,27 +2,37 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middlewares/auth.middleware');
 const mapController = require('../controllers/map.controller');
-const { query } = require('express-validator');
 
-router.get('/get-coordinates',
-    query('address').isString().isLength({ min: 3 }),
-    // authMiddleware.authUser,
-    mapController.getCoordinates
+/**
+ * 🗺️ RUTAS DE MAPAS - ACTUALIZADAS
+ * Ubicación: Backend/routes/map.routes.js
+ * 
+ * AGREGAR ESTAS RUTAS AL ARCHIVO EXISTENTE
+ */
+
+// ==========================================
+// RUTAS EXISTENTES (mantenerlas)
+// ==========================================
+// router.get('/get-suggestions', authMiddleware, mapController.getSuggestions);
+// router.get('/get-distance-time', authMiddleware, mapController.getDistanceTime);
+// ... otras rutas existentes
+
+// ==========================================
+// 🆕 NUEVAS RUTAS
+// ==========================================
+
+// Obtener coordenadas desde dirección
+router.get(
+  '/get-coordinates',
+  authMiddleware,
+  mapController.getCoordinatesFromAddress
 );
 
-router.get('/get-distance-time',
-    query('origin').isString().isLength({ min: 3 }),
-    query('destination').isString().isLength({ min: 3 }),
-    authMiddleware.authUser,
-    mapController.getDistanceTime
-)
-
-router.get('/get-suggestions',
-    query('input').isString().isLength({ min: 3 }),
-    authMiddleware.authUser,
-    mapController.getAutoCompleteSuggestions
-)
-
-
+// Obtener dirección desde coordenadas (para botón "Mi ubicación")
+router.get(
+  '/get-address-from-coordinates',
+  authMiddleware,
+  mapController.getAddressFromCoordinates
+);
 
 module.exports = router;
