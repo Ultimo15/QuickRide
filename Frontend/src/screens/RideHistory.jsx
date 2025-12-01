@@ -14,8 +14,6 @@ import {
   Search,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import OriginPin from "../components/assets/icons/OriginPin";
-import DestinationPin from "../components/assets/icons/DestinationPin";
 import EmptyState from "../components/EmptyState";
 
 /**
