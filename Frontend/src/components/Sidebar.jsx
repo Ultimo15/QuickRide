@@ -115,18 +115,19 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
       {/* ============================================
           BOTÓN DE MENÚ (HAMBURGUESA)
           ============================================ */}
-      <motion.div
-        className="m-3 mt-4 absolute right-0 top-0 z-50 cursor-pointer bg-white p-2 rounded-uber-lg shadow-uber hover:shadow-uber-lg transition-shadow"
+      <motion.button
+        className="fixed top-4 right-4 z-[100] cursor-pointer bg-white p-3 rounded-full shadow-uber-lg hover:shadow-uber-xl transition-all border-2 border-uber-light-gray hover:border-black"
         onClick={() => toggleSidebar(!showSidebar)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        aria-label={showSidebar ? "Cerrar menú" : "Abrir menú"}
       >
         {showSidebar ? (
           <X className="w-6 h-6 text-black" />
         ) : (
           <Menu className="w-6 h-6 text-black" />
         )}
-      </motion.div>
+      </motion.button>
 
       {/* ============================================
           OVERLAY OSCURO
