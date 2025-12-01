@@ -535,6 +535,8 @@ function UserHomeScreen() {
                 destinationLocation={destinationLocation}
                 selectedVehicle={selectedVehicle}
                 fare={fare}
+                offeredPrice={offeredPrice}
+                paymentMethod={paymentMethod}
                 showPanel={true}
                 createRide={createRide}
                 cancelRide={cancelRide}

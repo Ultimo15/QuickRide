@@ -26,6 +26,8 @@ function RideDetails({
   destinationLocation,
   selectedVehicle,
   fare,
+  offeredPrice,
+  paymentMethod = "cash",
   showPanel,
   setShowPanel,
   showPreviousPanel,
@@ -39,6 +41,18 @@ function RideDetails({
   const isSearching = rideCreated && !confirmedRideData;
   const hasDriver = confirmedRideData?._id;
 
+  // Calcular precio final (ofertado o sugerido)
+  const finalPrice = offeredPrice || fare[selectedVehicle];
+
+  // Obtener nombre del método de pago
+  const getPaymentMethodName = (method) => {
+    const methods = {
+      cash: "Efectivo",
+      nequi: "Nequi",
+    };
+    return methods[method] || "Efectivo";
+  };
+
   return (
     <AnimatePresence>
       {showPanel && (
@@ -49,15 +63,17 @@ function RideDetails({
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
         >
-          {/* CLOSE BUTTON */}
-          <motion.button
-            onClick={() => setShowPanel(false)}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-uber-extra-light-gray hover:bg-uber-light-gray flex items-center justify-center transition-colors"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <X className="w-5 h-5 text-uber-medium-gray" />
-          </motion.button>
+          {/* CLOSE BUTTON - Solo si se proporciona la función */}
+          {setShowPanel && (
+            <motion.button
+              onClick={() => setShowPanel(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-uber-extra-light-gray hover:bg-uber-light-gray flex items-center justify-center transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <X className="w-5 h-5 text-uber-medium-gray" />
+            </motion.button>
+          )}
 
           {/* BUSCANDO CONDUCTOR */}
           {isSearching && (
@@ -260,20 +276,42 @@ function RideDetails({
               </div>
             </div>
 
-            {/* PRECIO */}
-            <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-uber-green/10 to-uber-green/5 border-2 border-uber-green rounded-uber-lg">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-uber-green flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-white" />
+            {/* PRECIO Y MÉTODO DE PAGO */}
+            <div className="p-4 bg-gradient-to-r from-uber-green/10 to-uber-green/5 border-2 border-uber-green rounded-uber-lg space-y-3">
+              {/* Precio principal */}
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-uber-green flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-uber-medium-gray font-semibold mb-0.5">
+                    {offeredPrice ? "Tu oferta" : "Total a pagar"}
+                  </p>
+                  <p className="text-2xl font-bold text-black">
+                    ${finalPrice?.toLocaleString("es-CO")}
+                  </p>
+                  <p className="text-xs text-uber-medium-gray">
+                    COP • {getPaymentMethodName(paymentMethod)}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-xs text-uber-medium-gray font-semibold mb-0.5">
-                  Total a pagar
-                </p>
-                <p className="text-2xl font-bold text-black">
-                  ${fare[selectedVehicle]?.toLocaleString("es-CO")}
-                </p>
-                <p className="text-xs text-uber-medium-gray">COP • Efectivo</p>
-              </div>
+
+              {/* Comparación de precios si hay precio ofertado */}
+              {offeredPrice && offeredPrice !== fare[selectedVehicle] && (
+                <motion.div
+                  className="flex items-center justify-between pt-2 border-t border-uber-green/20"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <span className="text-xs text-uber-medium-gray font-medium">
+                    Precio sugerido:
+                  </span>
+                  <span className="text-sm font-bold text-uber-medium-gray line-through">
+                    ${fare[selectedVehicle]?.toLocaleString("es-CO")}
+                  </span>
+                </motion.div>
+              )}
             </div>
           </motion.div>
 
