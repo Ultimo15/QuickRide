@@ -1,45 +1,56 @@
-import  { useState } from "react";
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Calendar,
-  ChevronUp,
+  ChevronDown,
   Clock,
-  CreditCard
+  CreditCard,
+  MapPin,
+  Navigation,
+  Filter,
+  CheckCircle,
+  XCircle,
+  Search,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import OriginPin from "../components/assets/icons/OriginPin";
+import DestinationPin from "../components/assets/icons/DestinationPin";
+import EmptyState from "../components/EmptyState";
 
+/**
+ * RideHistory - Historial de viajes profesional estilo Uber
+ * Con filtros, búsqueda, tarjetas mejoradas y animaciones
+ */
 function RideHistory() {
   const navigation = useNavigate();
   const userData = JSON.parse(localStorage.getItem("userData"));
-  const [user, setUser] = useState(userData.data);
+  const [user] = useState(userData.data);
+  const [filter, setFilter] = useState("all"); // all, completed, cancelled
+  const [searchQuery, setSearchQuery] = useState("");
 
   function classifyAndSortRides(rides) {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
 
-    // Helper function to check if a date is today
     const isToday = (date) =>
       date.getFullYear() === today.getFullYear() &&
       date.getMonth() === today.getMonth() &&
       date.getDate() === today.getDate();
 
-    // Helper function to check if a date is yesterday
     const isYesterday = (date) =>
       date.getFullYear() === yesterday.getFullYear() &&
       date.getMonth() === yesterday.getMonth() &&
       date.getDate() === yesterday.getDate();
 
-    // Helper function to sort rides by date (recent to oldest)
     const sortByDate = (rides) =>
       rides.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Arrays to hold classified rides
     const todayRides = [];
     const yesterdayRides = [];
     const earlierRides = [];
 
-    // Classify rides
     rides.forEach((ride) => {
       const createdDate = new Date(ride.createdAt);
       if (isToday(createdDate)) {
@@ -51,7 +62,6 @@ function RideHistory() {
       }
     });
 
-    // Return sorted arrays
     return {
       today: sortByDate(todayRides),
       yesterday: sortByDate(yesterdayRides),
@@ -59,165 +69,339 @@ function RideHistory() {
     };
   }
 
+  // Filter and search rides
+  const filteredRides = useMemo(() => {
+    let rides = user.rides || [];
+
+    // Apply status filter
+    if (filter === "completed") {
+      rides = rides.filter((ride) => ride.status === "completed");
+    } else if (filter === "cancelled") {
+      rides = rides.filter((ride) => ride.status === "cancelled");
+    }
+
+    // Apply search
+    if (searchQuery.trim()) {
+      rides = rides.filter(
+        (ride) =>
+          ride.pickup.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ride.destination.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return rides;
+  }, [user.rides, filter, searchQuery]);
+
+  const classifiedRides = classifyAndSortRides(filteredRides);
+  const totalRides = filteredRides.length;
+
   return (
-    <div className="p-4">
-      <div className="flex gap-3">
-        <ArrowLeft
-          strokeWidth={3}
-          className="mt-[4px] cursor-pointer"
-          onClick={() => navigation(-1)}
-        />
-        {/* <Heading title={"Edit Profile"} /> */}
-        <h1 className="text-2xl font-semibold mb-4">History</h1>
-      </div>
+    <div className="min-h-screen bg-uber-extra-light-gray">
+      {/* HEADER */}
+      <motion.div
+        className="bg-gradient-to-r from-black to-uber-dark-gray p-6 pb-8"
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", damping: 20 }}
+      >
+        <div className="flex items-center gap-4 mb-6">
+          <motion.button
+            onClick={() => navigation(-1)}
+            className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <ArrowLeft className="w-5 h-5 text-white" strokeWidth={2.5} />
+          </motion.button>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Historial de viajes</h1>
+            <p className="text-sm text-uber-light-gray mt-0.5">
+              {totalRides} {totalRides === 1 ? "viaje" : "viajes"} encontrados
+            </p>
+          </div>
+        </div>
 
-      <div className="h-[90vh] overflow-scroll ">
-        <details open className="group">
-          <summary className="flex items-center justify-between cursor-pointer text-gray-800 font-semibold mb-2 select-none">
-            <span>Today</span>
-            <ChevronUp className="w-5 h-5 transition-transform duration-300 group-open:rotate-180 text-gray-600" />
-          </summary>
-          {classifyAndSortRides(user.rides).today.length > 0 ? (
-            classifyAndSortRides(user.rides).today.map((ride) => {
-              return <Ride ride={ride} key={ride._id} />;
-            })
-          ) : (
-            <h1 className="text-sm text-center text-zinc-600">
-              No rides found
-            </h1>
-          )}
-        </details>
+        {/* SEARCH BAR */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-uber-medium-gray" />
+          <input
+            type="text"
+            placeholder="Buscar por ubicación..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-transparent focus:border-uber-green rounded-uber-xl text-black placeholder-uber-medium-gray outline-none transition-all"
+          />
+        </div>
 
-        <details open className="group">
-          <summary className="flex items-center justify-between cursor-pointer text-gray-800 font-semibold mb-2 select-none">
-            <span>Yesterday</span>
-            <ChevronUp className="w-5 h-5 transition-transform duration-300 group-open:rotate-180 text-gray-600" />
-          </summary>
-          {classifyAndSortRides(user.rides).yesterday.length > 0 ? (
-            classifyAndSortRides(user.rides).yesterday.map((ride) => {
-              return <Ride ride={ride} key={ride._id} />;
-            })
-          ) : (
-            <h1 className="text-sm text-center text-zinc-600">
-              No rides found
-            </h1>
-          )}
-        </details>
+        {/* FILTERS */}
+        <div className="flex gap-2 mt-4">
+          <FilterButton
+            active={filter === "all"}
+            onClick={() => setFilter("all")}
+            icon={<Filter className="w-4 h-4" />}
+            label="Todos"
+          />
+          <FilterButton
+            active={filter === "completed"}
+            onClick={() => setFilter("completed")}
+            icon={<CheckCircle className="w-4 h-4" />}
+            label="Completados"
+          />
+          <FilterButton
+            active={filter === "cancelled"}
+            onClick={() => setFilter("cancelled")}
+            icon={<XCircle className="w-4 h-4" />}
+            label="Cancelados"
+          />
+        </div>
+      </motion.div>
 
-        <details open className="group">
-          <summary className="flex items-center justify-between cursor-pointer text-gray-800 font-semibold mb-2 select-none">
-            <span>Earlier</span>
-            <ChevronUp className="w-5 h-5 transition-transform duration-300 group-open:rotate-180 text-gray-600" />
-          </summary>
-          {classifyAndSortRides(user.rides).earlier.length > 0 ? (
-            classifyAndSortRides(user.rides).earlier.map((ride) => {
-              return <Ride ride={ride} key={ride._id} />;
-            })
-          ) : (
-            <h1 className="text-sm text-center text-zinc-600">
-              No rides found
-            </h1>
-          )}
-        </details>
+      {/* CONTENT */}
+      <div className="p-4 pb-20">
+        {totalRides === 0 ? (
+          <EmptyState
+            icon={<Calendar className="w-16 h-16" />}
+            title="No hay viajes"
+            message={
+              searchQuery
+                ? "No encontramos viajes que coincidan con tu búsqueda"
+                : filter === "all"
+                ? "Aún no has realizado ningún viaje"
+                : `No tienes viajes ${filter === "completed" ? "completados" : "cancelados"}`
+            }
+          />
+        ) : (
+          <div className="space-y-6">
+            {/* TODAY */}
+            {classifiedRides.today.length > 0 && (
+              <Section title="Hoy" rides={classifiedRides.today} />
+            )}
+
+            {/* YESTERDAY */}
+            {classifiedRides.yesterday.length > 0 && (
+              <Section title="Ayer" rides={classifiedRides.yesterday} />
+            )}
+
+            {/* EARLIER */}
+            {classifiedRides.earlier.length > 0 && (
+              <Section title="Anteriores" rides={classifiedRides.earlier} />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export const Ride = ({ ride }) => {
+// Filter Button Component
+const FilterButton = ({ active, onClick, icon, label }) => (
+  <motion.button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-4 py-2 rounded-uber-lg font-semibold text-sm transition-all ${
+      active
+        ? "bg-uber-green text-white shadow-uber"
+        : "bg-white/10 text-white hover:bg-white/20"
+    }`}
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+  >
+    {icon}
+    <span>{label}</span>
+  </motion.button>
+);
+
+// Section Component
+const Section = ({ title, rides }) => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <div>
+      <motion.button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full mb-3 group"
+        whileTap={{ scale: 0.98 }}
+      >
+        <h2 className="text-lg font-bold text-black">{title}</h2>
+        <motion.div
+          animate={{ rotate: isOpen ? 0 : -180 }}
+          transition={{ duration: 0.3 }}
+        >
+          <ChevronDown className="w-5 h-5 text-uber-medium-gray group-hover:text-black transition-colors" />
+        </motion.div>
+      </motion.button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="space-y-3"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {rides.map((ride, index) => (
+              <RideCard key={ride._id} ride={ride} index={index} />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// Ride Card Component
+export const RideCard = ({ ride, index }) => {
   function formatDate(inputDate) {
     const date = new Date(inputDate);
-
     const months = [
-      "Jan",
+      "Ene",
       "Feb",
       "Mar",
-      "Apr",
+      "Abr",
       "May",
       "Jun",
       "Jul",
-      "Aug",
+      "Ago",
       "Sep",
       "Oct",
       "Nov",
-      "Dec",
+      "Dic",
     ];
-
     const day = date.getDate();
     const month = months[date.getMonth()];
     const year = date.getFullYear();
-
     return `${day} ${month}, ${year}`;
   }
 
   function formatTime(inputDate) {
     const date = new Date(inputDate);
-
-    // Extract hours and minutes
     let hours = date.getHours();
     const minutes = date.getMinutes();
-
-    // Determine AM/PM
     const period = hours >= 12 ? "PM" : "AM";
-
-    // Convert hours to 12-hour format
-    hours = hours % 12 || 12; // Convert 0 to 12 for midnight
-
-    // Format minutes to always show two digits
+    hours = hours % 12 || 12;
     const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-
-    // Return the formatted time
     return `${hours}:${formattedMinutes} ${period}`;
   }
 
-  return (
-    <div className="w-full px-3 py-2 border-2 mb-2 rounded-lg  cursor-pointer relative">
-      <div className="flex flex-wrap gap-2 justify-around">
-        <h1 className="text-sm flex gap-1 items-center font-semibold">
-          <Calendar size={13} className="-mt-[1px]" />{" "}
-          {formatDate(ride.createdAt)}
-        </h1>
+  const statusConfig = {
+    completed: {
+      bg: "bg-uber-green/10",
+      border: "border-uber-green",
+      text: "text-uber-green",
+      icon: <CheckCircle className="w-4 h-4" />,
+      label: "Completado",
+    },
+    cancelled: {
+      bg: "bg-uber-red/10",
+      border: "border-uber-red",
+      text: "text-uber-red",
+      icon: <XCircle className="w-4 h-4" />,
+      label: "Cancelado",
+    },
+  };
 
-        <h1 className="text-sm flex gap-1 items-center font-semibold">
-          <Clock size={13} className="-mt-[1px]" /> {formatTime(ride.createdAt)}
-        </h1>
-        <h1 className="text-sm flex gap-1 items-center font-semibold ">
-          <CreditCard size={13} className="-mt-[1px] text-black" />₹ {ride.fare}
-        </h1>
-        {/* </div>
-        <div className="flex flex-wrap gap-2 justify-around">
-          <h1 className="text-xs flex gap-1 items-center font-semibold">
-            <Route size={13} className="-mt-[1px]" />{" "}
-            {Math.round(ride.distance / 1000)} KM
-          </h1>
-          <h1 className="text-xs flex gap-1 items-center font-semibold">
-            <Timer size={13} className="-mt-[1px]" />{" "}
-            {Math.round(ride.duration / 60)} minutes
-          </h1> */}
+  const status = statusConfig[ride.status] || statusConfig.completed;
+
+  return (
+    <motion.div
+      className="bg-white rounded-uber-xl p-4 shadow-uber border-2 border-uber-light-gray hover:border-black transition-colors"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      whileHover={{ scale: 1.01, y: -2 }}
+    >
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-uber-medium-gray font-medium">
+            <Calendar className="w-4 h-4" />
+            <span>{formatDate(ride.createdAt)}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-uber-medium-gray font-medium">
+            <Clock className="w-4 h-4" />
+            <span>{formatTime(ride.createdAt)}</span>
+          </div>
+        </div>
+
+        {/* STATUS BADGE */}
+        <div
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-uber-lg border ${status.bg} ${status.border}`}
+        >
+          {status.icon}
+          <span className={`text-xs font-bold ${status.text}`}>
+            {status.label}
+          </span>
+        </div>
       </div>
 
-      <div className="bg-zinc-200 w-full h-[1px] my-2"></div>
+      {/* ROUTE */}
+      <div className="relative pl-6 mb-4">
+        {/* LINE */}
+        <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-uber-green to-uber-red" />
 
-      <div className="w-full  items-center truncate">
-        <div className="flex items-center relative w-full h-fit">
-          <div className="h-4/5 w-[3px] flex flex-col items-center justify-between border-dashed border-2  border-black rounded-full absolute mx-2">
-            <div className="w-3 h-3 rounded-full border-[3px] -mt-1 bg-green-500 border-black"></div>
-            <div className="w-3 h-3 rounded-sm border-[3px] -mb-1 bg-red-400 border-black"></div>
+        {/* ORIGIN */}
+        <div className="relative mb-3">
+          <div className="absolute -left-6 top-1">
+            <div className="w-4 h-4 rounded-full bg-uber-green border-2 border-white shadow-uber" />
           </div>
-          <div className="ml-7 truncate w-full">
-            <h1 className=" text-xs truncate text-zinc-600 " title={ride.pickup}>{ride.pickup}</h1>
-            <div className="flex items-center gap-2">
-              <div className="bg-zinc-200 w-full h-[2px]"></div>
-              <h1 className="text-xs text-zinc-500 ">TO</h1>
-              <div className="bg-zinc-200 w-full h-[2px]"></div>
-            </div>
-            <h1 className=" text-xs truncate text-zinc-600 " title={ride.destination}>
-              {ride.destination}
-            </h1>
+          <div>
+            <p className="text-xs text-uber-medium-gray font-semibold mb-0.5">
+              Origen
+            </p>
+            <p className="text-sm font-bold text-black leading-tight">
+              {ride.pickup.split(", ")[0]}
+            </p>
+            <p className="text-xs text-uber-medium-gray truncate">
+              {ride.pickup.split(", ").slice(1).join(", ")}
+            </p>
+          </div>
+        </div>
+
+        {/* DESTINATION */}
+        <div className="relative">
+          <div className="absolute -left-6 top-1">
+            <div className="w-4 h-4 rounded-sm bg-uber-red border-2 border-white shadow-uber" />
+          </div>
+          <div>
+            <p className="text-xs text-uber-medium-gray font-semibold mb-0.5">
+              Destino
+            </p>
+            <p className="text-sm font-bold text-black leading-tight">
+              {ride.destination.split(", ")[0]}
+            </p>
+            <p className="text-xs text-uber-medium-gray truncate">
+              {ride.destination.split(", ").slice(1).join(", ")}
+            </p>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* FOOTER */}
+      <div className="flex items-center justify-between pt-3 border-t-2 border-uber-light-gray">
+        <div className="flex items-center gap-4">
+          {ride.distance && (
+            <div className="flex items-center gap-1.5 text-xs text-uber-medium-gray font-medium">
+              <Navigation className="w-4 h-4" />
+              <span>{(ride.distance / 1000).toFixed(1)} km</span>
+            </div>
+          )}
+          {ride.duration && (
+            <div className="flex items-center gap-1.5 text-xs text-uber-medium-gray font-medium">
+              <Clock className="w-4 h-4" />
+              <span>{Math.round(ride.duration / 60)} min</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <CreditCard className="w-4 h-4 text-uber-green" />
+          <span className="text-lg font-bold text-black">
+            ${ride.fare?.toLocaleString("es-CO")}
+          </span>
+        </div>
+      </div>
+    </motion.div>
   );
 };
+
 export default RideHistory;
