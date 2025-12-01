@@ -11,8 +11,8 @@
 }
 
 ::selection {
-  background-color: #bbf7d0;
-  color: black;
+  background-color: #00C853;
+  color: white;
 }
 
 /* iOS Safe Area Support - Evita distorsiones en notch y barras */
