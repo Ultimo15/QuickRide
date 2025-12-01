@@ -1,4 +1,5 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "../contexts/UserContext";
 import {
   ModernSearchBar,
@@ -12,19 +13,13 @@ import axios from "axios";
 import { SocketDataContext } from "../contexts/SocketContext";
 import { DEFAULT_LOCATION } from "../utils/constants";
 import Console from "../utils/console";
+import showToast from "../utils/toast";
+import { Navigation, MapPin, Clock } from "lucide-react";
 
 /**
- * 🏠 PANTALLA PRINCIPAL DEL USUARIO - REMODELADA
- * Ubicación: Frontend/src/screens/UserHomeScreen.jsx
- * 
- * Flujo moderno:
- * 1. Búsqueda de viaje (ModernSearchBar)
- * 2. Selección de vehículo (ModernVehicleSelector)
- * 3. Oferta de precio (PriceOfferPanel)
- * 4. Método de pago (PaymentMethodSelector)
- * 5. Confirmación y búsqueda de conductor
+ * UserHomeScreen - Pantalla principal del usuario estilo Uber
+ * Flujo completo de solicitud de viaje con animaciones profesionales
  */
-
 function UserHomeScreen() {
   const token = localStorage.getItem("token");
   const { socket } = useContext(SocketDataContext);
@@ -38,9 +33,6 @@ function UserHomeScreen() {
   const [offeredPrice, setOfferedPrice] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [confirmedRideData, setConfirmedRideData] = useState(null);
-  const [messages, setMessages] = useState(
-    JSON.parse(localStorage.getItem("messages")) || []
-  );
 
   // Estados de UI
   const [loading, setLoading] = useState(false);
@@ -54,25 +46,23 @@ function UserHomeScreen() {
   const [eta, setEta] = useState(null);
   const [rideStatus, setRideStatus] = useState("");
 
-  // Control de paneles (solo uno visible a la vez)
-  const [currentPanel, setCurrentPanel] = useState("search"); // search, vehicle, price, payment, details
+  // Control de paneles
+  const [currentPanel, setCurrentPanel] = useState("search");
   const rideTimeout = useRef(null);
   const mapIframeRef = useRef(null);
 
   // ==========================================
-  // FUNCIÓN: OBTENER COORDENADAS DESDE DIRECCIÓN
+  // OBTENER COORDENADAS DESDE DIRECCIÓN
   // ==========================================
   const getCoordinatesFromAddress = async (address) => {
     try {
-      // Si ya son coordenadas (formato: "lat, lng"), las devolvemos
-      if (address.includes(',') && !address.includes(' ')) {
-        const [lat, lng] = address.split(',').map(coord => parseFloat(coord.trim()));
+      if (address.includes(",") && !address.includes(" ")) {
+        const [lat, lng] = address.split(",").map((coord) => parseFloat(coord.trim()));
         if (!isNaN(lat) && !isNaN(lng)) {
           return { lat, lng };
         }
       }
 
-      // Si no, consultar al backend
       const response = await axios.get(
         `${import.meta.env.VITE_SERVER_URL}/map/get-coordinates`,
         {
@@ -85,7 +75,6 @@ function UserHomeScreen() {
         return { lat: response.data.lat, lng: response.data.lng };
       }
 
-      // Fallback: ubicación por defecto
       return { lat: DEFAULT_LOCATION.lat, lng: DEFAULT_LOCATION.lng };
     } catch (error) {
       console.error("Error obteniendo coordenadas:", error);
@@ -94,20 +83,18 @@ function UserHomeScreen() {
   };
 
   // ==========================================
-  // FUNCIÓN: BUSCAR TARIFA Y MOSTRAR PANEL DE VEHÍCULOS
+  // BUSCAR TARIFA
   // ==========================================
   const handleSearchRide = async () => {
-    Console.log("🔍 Buscando tarifa:", pickupLocation, destinationLocation);
-    
+    Console.log("🔍 Buscando tarifa");
+
     try {
       setLoading(true);
-      
-      // Actualizar mapa con la ruta
+
       setMapLocation(
         `https://www.google.com/maps?q=${pickupLocation} to ${destinationLocation}&output=embed`
       );
 
-      // Obtener tarifa desde el backend
       const response = await axios.get(
         `${import.meta.env.VITE_SERVER_URL}/ride/get-fare`,
         {
@@ -121,11 +108,12 @@ function UserHomeScreen() {
 
       Console.log("✅ Tarifa recibida:", response.data);
       setFare(response.data.fare);
-      setCurrentPanel("vehicle"); // Mostrar panel de vehículos
+      setCurrentPanel("vehicle");
+      showToast.success("Tarifa calculada exitosamente");
     } catch (error) {
       Console.error("❌ Error al calcular tarifa:", error);
-      alert(
-        "Error al calcular la tarifa. Verifica que las direcciones estén en nuestra zona de cobertura."
+      showToast.error(
+        "Error al calcular la tarifa. Verifica las direcciones."
       );
     } finally {
       setLoading(false);
@@ -133,21 +121,19 @@ function UserHomeScreen() {
   };
 
   // ==========================================
-  // FUNCIÓN: CREAR VIAJE
+  // CREAR VIAJE
   // ==========================================
   const createRide = async () => {
     Console.log("🚗 Creando viaje...");
-    
+
     try {
       setLoading(true);
 
-      // Obtener coordenadas de las direcciones
       const pickupCoords = await getCoordinatesFromAddress(pickupLocation);
       const destCoords = await getCoordinatesFromAddress(destinationLocation);
 
       Console.log("📍 Coordenadas obtenidas:", { pickupCoords, destCoords });
 
-      // Crear viaje
       const response = await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/ride/create`,
         {
@@ -166,7 +152,6 @@ function UserHomeScreen() {
 
       Console.log("✅ Viaje creado:", response.data);
 
-      // Guardar datos del viaje
       const rideData = {
         pickup: pickupLocation,
         destination: destinationLocation,
@@ -176,15 +161,15 @@ function UserHomeScreen() {
         paymentMethod: paymentMethod,
         _id: response.data._id,
       };
-      
+
       localStorage.setItem("rideDetails", JSON.stringify(rideData));
       setRideCreated(true);
       setCurrentPanel("details");
+      showToast.success("Viaje solicitado. Buscando conductor...");
     } catch (error) {
       Console.error("❌ Error al crear viaje:", error);
-      alert(
-        error.response?.data?.message || 
-        "Error al crear el viaje. Verifica que las direcciones estén en nuestra zona de cobertura."
+      showToast.error(
+        error.response?.data?.message || "Error al crear el viaje"
       );
     } finally {
       setLoading(false);
@@ -192,7 +177,7 @@ function UserHomeScreen() {
   };
 
   // ==========================================
-  // FUNCIÓN: CANCELAR VIAJE
+  // CANCELAR VIAJE
   // ==========================================
   const cancelRide = async () => {
     const rideDetails = JSON.parse(localStorage.getItem("rideDetails"));
@@ -217,8 +202,8 @@ function UserHomeScreen() {
       );
 
       Console.log("✅ Viaje cancelado");
+      showToast.success("Viaje cancelado");
 
-      // Limpiar estados
       setCaptainLocation(null);
       setCaptainVehicleType(null);
       setEta(null);
@@ -228,14 +213,14 @@ function UserHomeScreen() {
       updateLocation();
     } catch (error) {
       Console.error("❌ Error cancelando viaje:", error);
-      alert("Error al cancelar el viaje. Por favor, intenta de nuevo.");
+      showToast.error("Error al cancelar el viaje");
     } finally {
       setLoading(false);
     }
   };
 
   // ==========================================
-  // FUNCIÓN: RESETEAR TODO
+  // RESETEAR TODO
   // ==========================================
   const setDefaults = () => {
     setPickupLocation("");
@@ -250,7 +235,7 @@ function UserHomeScreen() {
   };
 
   // ==========================================
-  // FUNCIÓN: ACTUALIZAR UBICACIÓN DEL MAPA
+  // ACTUALIZAR UBICACIÓN DEL MAPA
   // ==========================================
   const updateLocation = () => {
     if (navigator.geolocation) {
@@ -262,7 +247,6 @@ function UserHomeScreen() {
         },
         (error) => {
           console.error("Error obteniendo ubicación:", error);
-          // Fallback a San Antonio del Táchira
           setMapLocation(
             `https://www.google.com/maps?q=${DEFAULT_LOCATION.lat},${DEFAULT_LOCATION.lng}&output=embed`
           );
@@ -275,7 +259,7 @@ function UserHomeScreen() {
   // EFECTOS
   // ==========================================
 
-  // Inicializar ubicación del mapa
+  // Inicializar ubicación
   useEffect(() => {
     updateLocation();
   }, []);
@@ -326,6 +310,7 @@ function UserHomeScreen() {
       setRideStatus("accepted");
       setConfirmedRideData(data);
       setRideCreated(false);
+      showToast.success("¡Conductor encontrado!");
     });
 
     socket.on("ride-started", (data) => {
@@ -334,6 +319,7 @@ function UserHomeScreen() {
       setMapLocation(
         `https://www.google.com/maps?q=${data.pickup} to ${data.destination}&output=embed`
       );
+      showToast.success("El viaje ha comenzado");
     });
 
     socket.on("ride-ended", () => {
@@ -346,6 +332,7 @@ function UserHomeScreen() {
       localStorage.removeItem("rideDetails");
       localStorage.removeItem("messages");
       updateLocation();
+      showToast.success("Viaje completado");
     });
 
     return () => {
@@ -356,7 +343,7 @@ function UserHomeScreen() {
   }, [user, socket]);
 
   // ==========================================
-  // HELPER: ICONO DEL VEHÍCULO
+  // HELPER
   // ==========================================
   const getVehicleIcon = (vehicleType) => {
     const icons = { car: "🚗", bike: "🏍️" };
@@ -367,7 +354,7 @@ function UserHomeScreen() {
   // RENDER
   // ==========================================
   return (
-    <div className="relative w-full h-screen bg-gray-100 overflow-hidden">
+    <div className="relative w-full h-screen bg-uber-extra-light-gray overflow-hidden">
       {/* SIDEBAR */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
@@ -379,125 +366,190 @@ function UserHomeScreen() {
         allowFullScreen={true}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
+        title="Mapa de QuickRide"
       />
 
-      {/* INDICADOR DE TRACKING EN TIEMPO REAL */}
-      {!sidebarOpen && (rideStatus === "accepted" || rideStatus === "ongoing") && captainLocation && (
-        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-30 bg-white rounded-full px-6 py-3 shadow-2xl flex items-center gap-3 animate-bounce">
-          <div className="animate-pulse">
-            <span className="text-2xl">{getVehicleIcon(captainVehicleType)}</span>
-          </div>
-          <div>
-            <p className="text-xs text-gray-600 font-medium">
-              {rideStatus === "accepted" ? "Tu conductor viene en camino" : "En viaje"}
-            </p>
-            {eta && (
-              <p className="text-lg font-bold text-blue-600">
-                {eta} {eta === 1 ? "minuto" : "minutos"}
-              </p>
+      {/* TRACKING INDICATOR */}
+      <AnimatePresence>
+        {!sidebarOpen &&
+          (rideStatus === "accepted" || rideStatus === "ongoing") &&
+          captainLocation && (
+            <motion.div
+              className="absolute top-20 left-1/2 z-30 bg-white rounded-uber-xl px-6 py-3 shadow-uber-xl flex items-center gap-3 border-2 border-uber-green"
+              initial={{ y: -100, x: "-50%", opacity: 0 }}
+              animate={{ y: 0, x: "-50%", opacity: 1 }}
+              exit={{ y: -100, x: "-50%", opacity: 0 }}
+              transition={{ type: "spring", damping: 20 }}
+            >
+              <motion.div
+                animate={{
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 5, -5, 0],
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <span className="text-2xl">{getVehicleIcon(captainVehicleType)}</span>
+              </motion.div>
+              <div>
+                <p className="text-xs text-uber-medium-gray font-semibold">
+                  {rideStatus === "accepted"
+                    ? "Tu conductor viene en camino"
+                    : "En viaje"}
+                </p>
+                {eta && (
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4 text-uber-green" />
+                    <p className="text-lg font-bold text-uber-green">
+                      {eta} {eta === 1 ? "minuto" : "minutos"}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <motion.div
+                className="w-2 h-2 rounded-full bg-uber-green"
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+            </motion.div>
+          )}
+      </AnimatePresence>
+
+      {/* PANELES CON ANIMATEPRESENCE */}
+      <AnimatePresence mode="wait">
+        {!sidebarOpen && (
+          <>
+            {/* PANEL 1: BÚSQUEDA */}
+            {currentPanel === "search" && (
+              <motion.div
+                key="search"
+                className="absolute bottom-0 w-full z-10 p-4 bg-white rounded-t-uber-3xl shadow-uber-xl"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              >
+                <ModernSearchBar
+                  pickupLocation={pickupLocation}
+                  setPickupLocation={setPickupLocation}
+                  destinationLocation={destinationLocation}
+                  setDestinationLocation={setDestinationLocation}
+                  onSearch={handleSearchRide}
+                  loading={loading}
+                />
+              </motion.div>
             )}
-          </div>
-        </div>
-      )}
 
-      {/* PANEL 1: BÚSQUEDA */}
-      {currentPanel === "search" && !sidebarOpen && (
-        <div className="absolute bottom-0 w-full z-10 p-4 bg-white rounded-t-3xl shadow-2xl">
-          <ModernSearchBar
-            pickupLocation={pickupLocation}
-            setPickupLocation={setPickupLocation}
-            destinationLocation={destinationLocation}
-            setDestinationLocation={setDestinationLocation}
-            onSearch={handleSearchRide}
-            loading={loading}
-          />
-        </div>
-      )}
+            {/* PANEL 2: VEHÍCULO */}
+            {currentPanel === "vehicle" && (
+              <motion.div
+                key="vehicle"
+                className="absolute bottom-0 w-full z-20 bg-white rounded-t-uber-3xl shadow-uber-xl p-6 max-h-[80vh] overflow-y-auto"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              >
+                <ModernVehicleSelector
+                  selectedVehicle={selectedVehicle}
+                  fare={fare}
+                  onSelect={setSelectedVehicle}
+                  estimatedTime={eta}
+                />
+                <div className="flex gap-3 mt-6">
+                  <motion.button
+                    onClick={() => setCurrentPanel("search")}
+                    className="flex-1 py-4 border-2 border-uber-light-gray text-black rounded-uber-xl font-bold hover:bg-uber-extra-light-gray transition-colors"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Atrás
+                  </motion.button>
+                  <motion.button
+                    onClick={() => setCurrentPanel("price")}
+                    className="flex-1 py-4 bg-black text-white rounded-uber-xl font-bold hover:bg-uber-dark-gray transition-colors"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Continuar
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
 
-      {/* PANEL 2: SELECCIÓN DE VEHÍCULO */}
-      {currentPanel === "vehicle" && !sidebarOpen && (
-        <div className="absolute bottom-0 w-full z-20 bg-white rounded-t-3xl shadow-2xl p-6 max-h-[80vh] overflow-y-auto">
-          <ModernVehicleSelector
-            selectedVehicle={selectedVehicle}
-            fare={fare}
-            onSelect={setSelectedVehicle}
-            estimatedTime={null}
-          />
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={() => setCurrentPanel("search")}
-              className="flex-1 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50"
-            >
-              Atrás
-            </button>
-            <button
-              onClick={() => setCurrentPanel("price")}
-              className="flex-1 py-4 bg-black text-white rounded-xl font-semibold hover:bg-gray-900"
-            >
-              Continuar
-            </button>
-          </div>
-        </div>
-      )}
+            {/* PANEL 3: PRECIO */}
+            {currentPanel === "price" && (
+              <PriceOfferPanel
+                key="price"
+                suggestedPrice={fare[selectedVehicle]}
+                vehicleType={selectedVehicle}
+                onPriceChange={setOfferedPrice}
+                onConfirm={(price) => {
+                  setOfferedPrice(price);
+                  setCurrentPanel("payment");
+                }}
+                onBack={() => setCurrentPanel("vehicle")}
+              />
+            )}
 
-      {/* PANEL 3: OFERTA DE PRECIO */}
-      {currentPanel === "price" && !sidebarOpen && (
-        <PriceOfferPanel
-          suggestedPrice={fare[selectedVehicle]}
-          vehicleType={selectedVehicle}
-          onPriceChange={setOfferedPrice}
-          onConfirm={(price) => {
-            setOfferedPrice(price);
-            setCurrentPanel("payment");
-          }}
-          onBack={() => setCurrentPanel("vehicle")}
-        />
-      )}
+            {/* PANEL 4: PAGO */}
+            {currentPanel === "payment" && (
+              <motion.div
+                key="payment"
+                className="absolute bottom-0 w-full z-20 bg-white rounded-t-uber-3xl shadow-uber-xl p-6"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              >
+                <PaymentMethodSelector
+                  selected={paymentMethod}
+                  onChange={setPaymentMethod}
+                />
+                <div className="flex gap-3 mt-6">
+                  <motion.button
+                    onClick={() => setCurrentPanel("price")}
+                    className="flex-1 py-4 border-2 border-uber-light-gray text-black rounded-uber-xl font-bold hover:bg-uber-extra-light-gray transition-colors"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Atrás
+                  </motion.button>
+                  <motion.button
+                    onClick={createRide}
+                    disabled={loading}
+                    className="flex-1 py-4 bg-black text-white rounded-uber-xl font-bold hover:bg-uber-dark-gray disabled:bg-uber-medium-gray disabled:cursor-not-allowed transition-colors"
+                    whileHover={{ scale: loading ? 1 : 1.02 }}
+                    whileTap={{ scale: loading ? 1 : 0.98 }}
+                  >
+                    {loading ? "Creando..." : "Confirmar viaje"}
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
 
-      {/* PANEL 4: MÉTODO DE PAGO */}
-      {currentPanel === "payment" && !sidebarOpen && (
-        <div className="absolute bottom-0 w-full z-20 bg-white rounded-t-3xl shadow-2xl p-6">
-          <PaymentMethodSelector
-            selected={paymentMethod}
-            onChange={setPaymentMethod}
-          />
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={() => setCurrentPanel("price")}
-              className="flex-1 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50"
-            >
-              Atrás
-            </button>
-            <button
-              onClick={createRide}
-              disabled={loading}
-              className="flex-1 py-4 bg-black text-white rounded-xl font-semibold hover:bg-gray-900 disabled:bg-gray-400"
-            >
-              {loading ? "Creando..." : "Confirmar viaje"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* PANEL 5: DETALLES DEL VIAJE */}
-      {currentPanel === "details" && !sidebarOpen && (
-        <RideDetails
-          pickupLocation={pickupLocation}
-          destinationLocation={destinationLocation}
-          selectedVehicle={selectedVehicle}
-          fare={fare}
-          showPanel={true}
-          createRide={createRide}
-          cancelRide={cancelRide}
-          loading={loading}
-          rideCreated={rideCreated}
-          confirmedRideData={confirmedRideData}
-          captainLocation={captainLocation}
-          eta={eta}
-          rideStatus={rideStatus}
-          vehicleType={captainVehicleType}
-        />
-      )}
+            {/* PANEL 5: DETALLES */}
+            {currentPanel === "details" && (
+              <RideDetails
+                key="details"
+                pickupLocation={pickupLocation}
+                destinationLocation={destinationLocation}
+                selectedVehicle={selectedVehicle}
+                fare={fare}
+                showPanel={true}
+                createRide={createRide}
+                cancelRide={cancelRide}
+                loading={loading}
+                rideCreated={rideCreated}
+                confirmedRideData={confirmedRideData}
+                captainLocation={captainLocation}
+                estimatedTime={eta}
+                rideStatus={rideStatus}
+                vehicleType={captainVehicleType}
+              />
+            )}
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
