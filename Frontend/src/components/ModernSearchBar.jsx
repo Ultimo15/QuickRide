@@ -178,18 +178,18 @@ function ModernSearchBar({
         transition={{ delay: 0.2, duration: 0.3 }}
       >
         {/* Línea conectora entre inputs */}
-        <div className="absolute left-[30px] top-[4.5rem] bottom-[4.5rem] w-0.5 bg-gradient-to-b from-black via-uber-medium-gray to-uber-green z-0" />
+        <div className="absolute left-[26px] sm:left-[30px] top-[4.5rem] bottom-[4.5rem] w-0.5 bg-gradient-to-b from-black via-uber-medium-gray to-uber-green z-0" />
 
         {/* INPUT ORIGEN */}
-        <div className="relative p-4 border-b border-uber-light-gray">
-          <div className="flex items-center gap-3">
+        <div className="relative p-3 sm:p-4 border-b border-uber-light-gray">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Icono A */}
             <motion.div
-              className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-black flex items-center justify-center shadow-uber"
+              className="relative z-10 flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black flex items-center justify-center shadow-uber"
               whileHover={{ scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <span className="text-white font-bold text-sm">A</span>
+              <span className="text-white font-bold text-xs sm:text-sm">A</span>
             </motion.div>
 
             {/* Input */}
@@ -199,7 +199,7 @@ function ModernSearchBar({
               onChange={(e) => handleInputChange("pickup", e.target.value)}
               onFocus={() => setActiveInput("pickup")}
               placeholder="Punto de recogida"
-              className="flex-1 text-base font-medium text-black placeholder-uber-medium-gray outline-none bg-transparent focus:placeholder-uber-light-gray transition-colors"
+              className="flex-1 text-sm sm:text-base font-medium text-black placeholder-uber-medium-gray outline-none bg-transparent focus:placeholder-uber-light-gray transition-colors"
             />
 
             {/* Botones de acción */}
@@ -231,7 +231,7 @@ function ModernSearchBar({
                   ) : (
                     <Navigation className="w-4 h-4" />
                   )}
-                  <span className="hidden sm:inline">Mi ubicación</span>
+                  <span className="hidden xs:inline text-xs sm:text-sm">Mi ubicación</span>
                 </motion.button>
               )}
             </div>
@@ -254,15 +254,15 @@ function ModernSearchBar({
         )}
 
         {/* INPUT DESTINO */}
-        <div className="relative p-4">
-          <div className="flex items-center gap-3">
+        <div className="relative p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Icono B */}
             <motion.div
-              className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-uber-green flex items-center justify-center shadow-uber"
+              className="relative z-10 flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-uber-green flex items-center justify-center shadow-uber"
               whileHover={{ scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <span className="text-white font-bold text-sm">B</span>
+              <span className="text-white font-bold text-xs sm:text-sm">B</span>
             </motion.div>
 
             {/* Input */}
@@ -272,7 +272,7 @@ function ModernSearchBar({
               onChange={(e) => handleInputChange("destination", e.target.value)}
               onFocus={() => setActiveInput("destination")}
               placeholder="¿A dónde vas?"
-              className="flex-1 text-base font-medium text-black placeholder-uber-medium-gray outline-none bg-transparent focus:placeholder-uber-light-gray transition-colors"
+              className="flex-1 text-sm sm:text-base font-medium text-black placeholder-uber-medium-gray outline-none bg-transparent focus:placeholder-uber-light-gray transition-colors"
             />
 
             {/* Botón limpiar */}

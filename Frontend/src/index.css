@@ -35,3 +35,34 @@ button {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* Increase touch target size for mobile */
+@media (max-width: 640px) {
+  button, a, input[type="checkbox"], input[type="radio"] {
+    min-height: 44px;
+  }
+
+  input[type="range"] {
+    min-height: 44px;
+    cursor: pointer;
+  }
+}
+
+/* Responsive base font size */
+@media (max-width: 475px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+/* Prevent horizontal overflow on small screens */
+@media (max-width: 640px) {
+  * {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+}

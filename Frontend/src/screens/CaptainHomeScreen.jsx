@@ -595,7 +595,7 @@ function CaptainHomeScreen() {
   // RENDER
   // ==========================================
   return (
-    <div className="relative w-full h-screen bg-uber-extra-light-gray overflow-hidden">
+    <div className="relative w-full h-dvh bg-uber-extra-light-gray overflow-hidden">
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* BOTÓN DE SONIDO */}
@@ -638,7 +638,7 @@ function CaptainHomeScreen() {
       <AnimatePresence>
         {showCaptainDetailsPanel && !sidebarOpen && (
           <motion.div
-            className="absolute bottom-0 w-full z-10 bg-white rounded-t-uber-3xl shadow-uber-xl p-6 space-y-5 max-h-[85vh] overflow-y-auto"
+            className="absolute bottom-0 w-full z-10 bg-white rounded-t-uber-3xl shadow-uber-xl p-4 sm:p-6 space-y-4 sm:space-y-5 max-h-dvh sm:max-h-[85vh] overflow-y-auto"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -689,7 +689,7 @@ function CaptainHomeScreen() {
 
             {/* TARJETAS DE GANANCIAS */}
             <motion.div
-              className="grid grid-cols-2 gap-3"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -709,7 +709,7 @@ function CaptainHomeScreen() {
                   </p>
                 </div>
                 <motion.p
-                  className="text-3xl font-bold text-white"
+                  className="text-2xl sm:text-3xl font-bold text-white"
                   key={earnings.today}
                   initial={{ scale: 1 }}
                   animate={{ scale: [1, 1.1, 1] }}
@@ -735,7 +735,7 @@ function CaptainHomeScreen() {
                   </p>
                 </div>
                 <motion.p
-                  className="text-3xl font-bold text-white"
+                  className="text-2xl sm:text-3xl font-bold text-white"
                   key={earnings.total}
                   initial={{ scale: 1 }}
                   animate={{ scale: [1, 1.1, 1] }}
@@ -751,7 +751,7 @@ function CaptainHomeScreen() {
 
             {/* ESTADÍSTICAS */}
             <motion.div
-              className="grid grid-cols-3 gap-3 bg-uber-extra-light-gray rounded-uber-xl p-4 border-2 border-uber-light-gray"
+              className="grid grid-cols-1 xs:grid-cols-3 gap-3 bg-uber-extra-light-gray rounded-uber-xl p-4 border-2 border-uber-light-gray"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -760,11 +760,11 @@ function CaptainHomeScreen() {
                 className="text-center"
                 whileHover={{ scale: 1.05 }}
               >
-                <div className="w-12 h-12 rounded-full bg-uber-green/10 flex items-center justify-center mx-auto mb-2">
-                  <CheckCircle className="w-6 h-6 text-uber-green" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-uber-green/10 flex items-center justify-center mx-auto mb-2">
+                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-uber-green" />
                 </div>
                 <motion.p
-                  className="text-2xl font-bold text-black"
+                  className="text-xl sm:text-2xl font-bold text-black"
                   key={rides.accepted}
                   initial={{ scale: 1 }}
                   animate={{ scale: [1, 1.15, 1] }}
@@ -781,11 +781,11 @@ function CaptainHomeScreen() {
                 className="text-center"
                 whileHover={{ scale: 1.05 }}
               >
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
-                  <Navigation className="w-6 h-6 text-blue-600" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+                  <Navigation className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
                 <motion.p
-                  className="text-2xl font-bold text-black"
+                  className="text-xl sm:text-2xl font-bold text-black"
                   key={rides.distanceTravelled}
                   initial={{ scale: 1 }}
                   animate={{ scale: [1, 1.15, 1] }}
@@ -802,11 +802,11 @@ function CaptainHomeScreen() {
                 className="text-center"
                 whileHover={{ scale: 1.05 }}
               >
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-2">
-                  <Clock className="w-6 h-6 text-uber-red" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-2">
+                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-uber-red" />
                 </div>
                 <motion.p
-                  className="text-2xl font-bold text-black"
+                  className="text-xl sm:text-2xl font-bold text-black"
                   key={rides.cancelled}
                   initial={{ scale: 1 }}
                   animate={{ scale: [1, 1.15, 1] }}
@@ -822,7 +822,7 @@ function CaptainHomeScreen() {
 
             {/* INFO DEL VEHÍCULO */}
             <motion.div
-              className="bg-gradient-to-r from-black to-uber-dark-gray rounded-uber-xl p-5 flex items-center justify-between"
+              className="bg-gradient-to-r from-black to-uber-dark-gray rounded-uber-xl p-4 sm:p-5 flex items-center justify-between"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -835,17 +835,17 @@ function CaptainHomeScreen() {
                     Mi Vehículo
                   </p>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-1">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1">
                   {captain?.vehicle?.plate ||
                     captain?.vehicle?.number ||
                     "N/A"}
                 </h3>
                 {captain?.vehicle?.model && (
-                  <p className="text-sm text-uber-light-gray mb-2">
+                  <p className="text-xs sm:text-sm text-uber-light-gray mb-2">
                     {captain.vehicle.model}
                   </p>
                 )}
-                <div className="flex items-center gap-3 text-sm text-white/70">
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-white/70">
                   <span className="capitalize">
                     {captain?.vehicle?.color || "Color"}
                   </span>
@@ -858,7 +858,7 @@ function CaptainHomeScreen() {
               </div>
 
               <motion.img
-                className="h-20 w-20 object-contain brightness-0 invert"
+                className="h-16 w-16 sm:h-20 sm:w-20 object-contain brightness-0 invert"
                 src={
                   captain?.vehicle?.type === "car"
                     ? "/car.png"

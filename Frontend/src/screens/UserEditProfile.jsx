@@ -209,7 +209,7 @@ function UserEditProfile() {
 
             {/* Nombres */}
             <motion.div
-              className="grid grid-cols-2 gap-3"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.35, duration: 0.3 }}

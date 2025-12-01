@@ -234,7 +234,7 @@ function CaptainEditProfile() {
               </p>
 
               {/* Nombres */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   label="Nombre"
                   name="firstname"
@@ -312,7 +312,7 @@ function CaptainEditProfile() {
               />
 
               {/* Color y Capacidad */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   label="Color"
                   name="color"

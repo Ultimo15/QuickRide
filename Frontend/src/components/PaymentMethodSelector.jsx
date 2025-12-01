@@ -26,11 +26,11 @@ function PaymentMethodSelector({ selected, onChange }) {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">Método de pago</h3>
-        <p className="text-sm text-gray-500">Selecciona cómo deseas pagar</p>
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Método de pago</h3>
+        <p className="text-xs sm:text-sm text-gray-500">Selecciona cómo deseas pagar</p>
       </div>
-      
-      <div className="grid grid-cols-2 gap-3">
+
+      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
         {methods.map((method) => {
           const Icon = method.icon;
           const isSelected = selected === method.id;
@@ -39,25 +39,25 @@ function PaymentMethodSelector({ selected, onChange }) {
             <button
               key={method.id}
               onClick={() => onChange(method.id)}
-              className={`relative p-6 rounded-2xl border-2 transition-all ${
+              className={`relative p-4 sm:p-6 rounded-2xl border-2 transition-all ${
                 isSelected
                   ? 'border-black bg-gray-900 text-white shadow-xl'
                   : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-lg'
               }`}
             >
               {isSelected && (
-                <div className="absolute top-3 right-3 w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                  <Check className="w-4 h-4 text-black" />
+                <div className="absolute top-2 sm:top-3 right-2 sm:right-3 w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-full flex items-center justify-center">
+                  <Check className="w-3 h-3 sm:w-4 sm:h-4 text-black" />
                 </div>
               )}
-              
-              <Icon className={`w-10 h-10 mx-auto mb-3 ${
-                isSelected 
-                  ? 'text-white' 
+
+              <Icon className={`w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2 sm:mb-3 ${
+                isSelected
+                  ? 'text-white'
                   : method.color === 'green' ? 'text-green-600' : 'text-purple-600'
               }`} />
-              
-              <p className={`text-base font-bold mb-1 ${
+
+              <p className={`text-sm sm:text-base font-bold mb-1 ${
                 isSelected ? 'text-white' : 'text-gray-900'
               }`}>
                 {method.name}

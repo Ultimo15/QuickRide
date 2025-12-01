@@ -31,8 +31,8 @@ const Avatar = ({
     xs: 'w-8 h-8 text-xs',
     sm: 'w-10 h-10 text-sm',
     md: 'w-12 h-12 text-base',
-    lg: 'w-16 h-16 text-lg',
-    xl: 'w-24 h-24 text-2xl',
+    lg: 'w-14 h-14 text-lg',
+    xl: 'w-18 h-18 text-xl',
   };
 
   const statusSizeClasses = {

@@ -30,16 +30,16 @@ function Input({
   rightIcon,
 }) {
   const baseInputClasses = `
-    w-full px-4 py-3 rounded-uber-lg
+    w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-uber-lg
     bg-uber-extra-light-gray
     border-2 border-transparent
-    text-base text-black
+    text-sm sm:text-base text-black
     placeholder:text-uber-medium-gray
     transition-all duration-200
     focus:outline-none focus:border-black focus:bg-white
     disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-gray-200
-    ${leftIcon ? "pl-12" : ""}
-    ${rightIcon ? "pr-12" : ""}
+    ${leftIcon ? "pl-10 sm:pl-12" : ""}
+    ${rightIcon ? "pr-10 sm:pr-12" : ""}
     ${error ? "border-uber-red focus:border-uber-red" : ""}
   `;
 
@@ -54,7 +54,7 @@ function Input({
       {label && (
         <label
           htmlFor={name}
-          className="block text-sm font-semibold text-black mb-2"
+          className="block text-xs sm:text-sm font-semibold text-black mb-2"
         >
           {label}
         </label>

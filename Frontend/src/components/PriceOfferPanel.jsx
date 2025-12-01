@@ -81,7 +81,7 @@ function PriceOfferPanel({
 
   return (
     <motion.div
-      className="bg-white rounded-t-uber-3xl shadow-uber-xl p-6 space-y-6 max-h-[90vh] overflow-y-auto"
+      className="bg-white rounded-t-uber-3xl shadow-uber-xl p-4 sm:p-6 space-y-4 sm:space-y-6 max-h-dvh sm:max-h-[85vh] overflow-y-auto"
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
@@ -90,7 +90,7 @@ function PriceOfferPanel({
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <motion.h2
-          className="text-2xl font-bold text-black"
+          className="text-lg sm:text-xl md:text-2xl font-bold text-black"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
@@ -109,21 +109,21 @@ function PriceOfferPanel({
 
       {/* PRECIO SUGERIDO */}
       <motion.div
-        className="bg-gradient-to-br from-black to-uber-dark-gray rounded-uber-xl p-6 border-2 border-black"
+        className="bg-gradient-to-br from-black to-uber-dark-gray rounded-uber-xl p-4 sm:p-6 border-2 border-black"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
       >
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-semibold text-white">Precio sugerido</span>
-          <span className="text-xs text-black bg-uber-green px-2.5 py-1 rounded-uber-md font-bold">
+          <span className="text-xs sm:text-sm font-semibold text-white">Precio sugerido</span>
+          <span className="text-xs text-black bg-uber-green px-2 sm:px-2.5 py-1 rounded-uber-md font-bold">
             Recomendado
           </span>
         </div>
         <div className="flex items-baseline gap-2">
-          <DollarSign className="w-6 h-6 text-uber-green" />
+          <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-uber-green" />
           <motion.span
-            className="text-4xl font-bold text-white"
+            className="text-2xl sm:text-3xl md:text-4xl font-bold text-white"
             key={suggestedPrice}
             initial={{ scale: 1 }}
             animate={{ scale: [1, 1.05, 1] }}
@@ -131,7 +131,7 @@ function PriceOfferPanel({
           >
             {suggestedPrice.toLocaleString("es-CO")}
           </motion.span>
-          <span className="text-lg text-uber-light-gray">COP</span>
+          <span className="text-sm sm:text-base md:text-lg text-uber-light-gray">COP</span>
         </div>
         <p className="text-xs text-uber-light-gray mt-2 flex items-center gap-1">
           <Info className="w-3 h-3" />
@@ -186,20 +186,20 @@ function PriceOfferPanel({
           >
             {/* Input de precio */}
             <div>
-              <label className="block text-sm font-semibold text-black mb-2">
+              <label className="block text-xs sm:text-sm font-semibold text-black mb-2">
                 Tu oferta
               </label>
               <div className="flex items-center gap-2">
                 <div className="flex-1 relative">
-                  <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-uber-medium-gray" />
+                  <DollarSign className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-uber-medium-gray" />
                   <input
                     type="text"
                     value={offeredPrice === 0 ? "" : offeredPrice.toLocaleString("es-CO")}
                     onChange={handleInputChange}
-                    className="w-full pl-11 pr-16 py-4 text-2xl font-bold text-black bg-white border-2 border-uber-light-gray rounded-uber-lg focus:border-black focus:outline-none transition-colors"
+                    className="w-full pl-9 sm:pl-11 pr-12 sm:pr-16 py-3 sm:py-4 text-lg sm:text-xl md:text-2xl font-bold text-black bg-white border-2 border-uber-light-gray rounded-uber-lg focus:border-black focus:outline-none transition-colors"
                     placeholder="0"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-uber-medium-gray font-semibold">
+                  <span className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-xs sm:text-sm text-uber-medium-gray font-semibold">
                     COP
                   </span>
                 </div>
@@ -208,12 +208,14 @@ function PriceOfferPanel({
 
             {/* Slider */}
             <div>
-              <div className="flex justify-between text-xs text-uber-medium-gray mb-2 font-medium">
-                <span>${(suggestedPrice * 0.5).toLocaleString("es-CO")}</span>
-                <span className="font-bold text-uber-green">
-                  Sugerido: ${suggestedPrice.toLocaleString("es-CO")}
+              <div className="flex justify-between text-[10px] xs:text-xs text-uber-medium-gray mb-2 font-medium">
+                <span className="hidden xs:inline">${(suggestedPrice * 0.5).toLocaleString("es-CO")}</span>
+                <span className="xs:hidden">Min</span>
+                <span className="font-bold text-uber-green text-xs">
+                  ${suggestedPrice.toLocaleString("es-CO")}
                 </span>
-                <span>${(suggestedPrice * 2).toLocaleString("es-CO")}</span>
+                <span className="hidden xs:inline">${(suggestedPrice * 2).toLocaleString("es-CO")}</span>
+                <span className="xs:hidden">Max</span>
               </div>
               <input
                 type="range"
@@ -222,7 +224,7 @@ function PriceOfferPanel({
                 step={500}
                 value={offeredPrice}
                 onChange={handleSliderChange}
-                className="w-full h-2 bg-uber-light-gray rounded-full appearance-none cursor-pointer accent-uber-green"
+                className="w-full h-3 sm:h-2 bg-uber-light-gray rounded-full appearance-none cursor-pointer accent-uber-green touch-manipulation"
                 style={{
                   background: `linear-gradient(to right, #00C853 0%, #00C853 ${
                     ((offeredPrice - suggestedPrice * 0.5) /
@@ -318,24 +320,24 @@ function PriceOfferPanel({
 
       {/* BOTONES */}
       <motion.div
-        className="flex gap-3"
+        className="flex flex-col xs:flex-row gap-3"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >
         <motion.button
           onClick={onBack}
-          className="flex-1 py-4 border-2 border-uber-light-gray text-black rounded-uber-xl font-bold hover:bg-uber-extra-light-gray transition-all flex items-center justify-center gap-2"
+          className="flex-1 py-3 sm:py-4 border-2 border-uber-light-gray text-black rounded-uber-xl font-bold hover:bg-uber-extra-light-gray transition-all flex items-center justify-center gap-2"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           Atrás
         </motion.button>
         <motion.button
           onClick={() => onConfirm(useCustomPrice ? offeredPrice : null)}
           disabled={useCustomPrice && offeredPrice < suggestedPrice * 0.5}
-          className="flex-1 py-4 bg-black text-white rounded-uber-xl font-bold hover:bg-uber-dark-gray transition-all disabled:bg-uber-medium-gray disabled:cursor-not-allowed shadow-uber-lg hover:shadow-uber-xl"
+          className="flex-1 py-3 sm:py-4 bg-black text-white rounded-uber-xl font-bold hover:bg-uber-dark-gray transition-all disabled:bg-uber-medium-gray disabled:cursor-not-allowed shadow-uber-lg hover:shadow-uber-xl"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >

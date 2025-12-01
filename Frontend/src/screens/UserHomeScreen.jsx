@@ -354,7 +354,7 @@ function UserHomeScreen() {
   // RENDER
   // ==========================================
   return (
-    <div className="relative w-full h-screen bg-uber-extra-light-gray overflow-hidden">
+    <div className="relative w-full h-dvh bg-uber-extra-light-gray overflow-hidden">
       {/* SIDEBAR */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
@@ -422,7 +422,7 @@ function UserHomeScreen() {
             {currentPanel === "search" && (
               <motion.div
                 key="search"
-                className="absolute bottom-0 w-full z-10 p-4 bg-white rounded-t-uber-3xl shadow-uber-xl"
+                className="absolute bottom-0 w-full z-10 p-3 sm:p-4 bg-white rounded-t-uber-3xl shadow-uber-xl"
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
@@ -443,7 +443,7 @@ function UserHomeScreen() {
             {currentPanel === "vehicle" && (
               <motion.div
                 key="vehicle"
-                className="absolute bottom-0 w-full z-20 bg-white rounded-t-uber-3xl shadow-uber-xl p-6 max-h-[80vh] overflow-y-auto"
+                className="absolute bottom-0 w-full z-20 bg-white rounded-t-uber-3xl shadow-uber-xl p-4 sm:p-6 max-h-dvh sm:max-h-[80vh] overflow-y-auto"
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}

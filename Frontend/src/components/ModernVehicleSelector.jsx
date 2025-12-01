@@ -77,7 +77,7 @@ function ModernVehicleSelector({
             <motion.button
               key={vehicle.id}
               onClick={() => onSelect(vehicle.id)}
-              className={`w-full flex items-center gap-4 p-5 rounded-uber-xl border-2 transition-all ${
+              className={`w-full flex items-center gap-3 sm:gap-4 p-4 sm:p-5 rounded-uber-xl border-2 transition-all ${
                 isSelected
                   ? "border-black bg-uber-extra-light-gray shadow-uber-xl"
                   : "border-uber-light-gray hover:border-uber-medium-gray hover:shadow-uber-lg bg-white"
@@ -90,7 +90,7 @@ function ModernVehicleSelector({
             >
               {/* ICONO DEL VEHÍCULO */}
               <div
-                className={`relative flex-shrink-0 w-20 h-20 rounded-uber-lg flex items-center justify-center transition-all ${
+                className={`relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-uber-lg flex items-center justify-center transition-all ${
                   isSelected ? "bg-black" : "bg-uber-extra-light-gray"
                 }`}
               >
@@ -116,10 +116,10 @@ function ModernVehicleSelector({
 
               {/* INFO DEL VEHÍCULO */}
               <div className="flex-1 text-left">
-                <h4 className="font-bold text-lg text-black mb-0.5">
+                <h4 className="font-bold text-base sm:text-lg text-black mb-0.5">
                   {vehicle.name} {vehicle.emoji}
                 </h4>
-                <p className="text-sm text-uber-medium-gray mb-2">
+                <p className="text-xs sm:text-sm text-uber-medium-gray mb-2">
                   {vehicle.description}
                 </p>
 
@@ -164,12 +164,12 @@ function ModernVehicleSelector({
                   animate={isSelected ? { scale: [1, 1.1, 1] } : { scale: 1 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <p className={`text-2xl font-bold ${
+                  <p className={`text-xl sm:text-2xl font-bold ${
                     isSelected ? "text-uber-green" : "text-black"
                   }`}>
                     ${price.toLocaleString("es-CO")}
                   </p>
-                  <p className="text-xs text-uber-medium-gray font-medium">COP</p>
+                  <p className="text-[10px] sm:text-xs text-uber-medium-gray font-medium">COP</p>
                 </motion.div>
               </div>
             </motion.button>

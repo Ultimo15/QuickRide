@@ -285,7 +285,7 @@ function NewRide({
                       setOtp(e.target.value.replace(/[^0-9]/g, ""))
                     }
                     placeholder="000000"
-                    className="w-full px-4 py-4 text-center text-3xl font-bold tracking-widest bg-uber-extra-light-gray border-2 border-uber-light-gray rounded-uber-lg focus:border-black focus:outline-none transition-colors"
+                    className="w-full px-3 sm:px-4 py-3 sm:py-4 text-center text-xl sm:text-2xl md:text-3xl font-bold tracking-wider sm:tracking-widest bg-uber-extra-light-gray border-2 border-uber-light-gray rounded-uber-lg focus:border-black focus:outline-none transition-colors"
                   />
                   <AnimatePresence>
                     {error && (
