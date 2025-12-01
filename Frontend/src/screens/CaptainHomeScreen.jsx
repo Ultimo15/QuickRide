@@ -1,17 +1,26 @@
 import { useContext, useEffect, useState, useRef } from "react";
 import axios from "axios";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCaptain } from "../contexts/CaptainContext";
-import { Phone, User, Volume2, VolumeX, MapPin } from "lucide-react";
+import {
+  Volume2,
+  VolumeX,
+  TrendingUp,
+  Navigation,
+  CheckCircle,
+  DollarSign,
+  MapPin,
+  Clock,
+} from "lucide-react";
 import { SocketDataContext } from "../contexts/SocketContext";
-import { NewRide, Sidebar, CaptainToggleButton } from "../components";
+import { NewRide, Sidebar, CaptainToggleButton, Avatar } from "../components";
 import Console from "../utils/console";
-import { useAlert } from "../hooks/useAlert";
-import { Alert } from "../components";
+import showToast from "../utils/toast";
 import { DEFAULT_LOCATION } from "../utils/constants";
 
 /**
- * 🚖 PANTALLA PRINCIPAL DEL CONDUCTOR - REMODELADA
- * Ubicación: Frontend/src/screens/CaptainHomeScreen.jsx
+ * 🚖 PANTALLA PRINCIPAL DEL CONDUCTOR - PROFESIONAL ESTILO UBER
+ * Dashboard de ganancias, estadísticas y gestión de viajes en tiempo real
  */
 
 const defaultRideData = {
@@ -39,7 +48,6 @@ function CaptainHomeScreen() {
   const { captain, setCaptain } = useCaptain();
   const { socket } = useContext(SocketDataContext);
   const [loading, setLoading] = useState(false);
-  const { alert, showAlert, hideAlert } = useAlert();
 
   // Estados de ubicación
   const [riderLocation, setRiderLocation] = useState({
@@ -182,6 +190,9 @@ function CaptainHomeScreen() {
     const newValue = !soundEnabled;
     setSoundEnabled(newValue);
     localStorage.setItem("soundEnabled", String(newValue));
+    showToast.success(
+      newValue ? "🔊 Sonido activado" : "🔇 Sonido desactivado"
+    );
     Console.log(`🔊 Sonido ${newValue ? "activado" : "desactivado"}`);
   };
 
@@ -212,9 +223,15 @@ function CaptainHomeScreen() {
       const userData = JSON.parse(localStorage.getItem("userData"));
       userData.data.status = response.data.captain.status;
       localStorage.setItem("userData", JSON.stringify(userData));
+
+      showToast.success(
+        response.data.captain.status === "online"
+          ? "✅ Ahora estás disponible para recibir viajes"
+          : "⏸️ Ya no recibirás nuevos viajes"
+      );
     } catch (error) {
       Console.error("❌ Error cambiando estado:", error);
-      showAlert("Error", "No se pudo cambiar el estado", "failure");
+      showToast.error("Error al cambiar el estado");
     } finally {
       setLoading(false);
     }
@@ -244,11 +261,14 @@ function CaptainHomeScreen() {
 
         startLocationTracking();
 
+        showToast.success("✅ Viaje aceptado! Dirígete al punto de recogida");
         Console.log(response);
       }
     } catch (error) {
       setLoading(false);
-      showAlert("Error", error.response?.data?.message || "Error aceptando viaje", "failure");
+      showToast.error(
+        error.response?.data?.message || "Error aceptando viaje"
+      );
       Console.log(error.response);
       setTimeout(() => {
         clearRideData();
@@ -280,11 +300,13 @@ function CaptainHomeScreen() {
           status: "ongoing",
         });
 
+        showToast.success("🚗 Viaje iniciado! Dirígete al destino");
         Console.log(response);
       }
     } catch (err) {
       setLoading(false);
       setError("Código OTP inválido");
+      showToast.error("❌ Código OTP inválido");
       Console.log(err);
     }
   };
@@ -321,9 +343,12 @@ function CaptainHomeScreen() {
         localStorage.removeItem("messages");
 
         calculateEarnings();
+
+        showToast.success("🎉 ¡Viaje finalizado! Buen trabajo");
       }
     } catch (err) {
       setLoading(false);
+      showToast.error("Error finalizando el viaje");
       Console.log(err);
     }
   };
@@ -343,7 +368,7 @@ function CaptainHomeScreen() {
           setMapLocation(
             `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}&output=embed`
           );
-          
+
           socket.emit("update-location-captain", {
             userId: captain._id,
             location: {
@@ -354,7 +379,6 @@ function CaptainHomeScreen() {
         },
         (error) => {
           console.error("Error obteniendo ubicación:", error);
-          // Fallback a San Antonio del Táchira
           setMapLocation(
             `https://www.google.com/maps?q=${DEFAULT_LOCATION.lat},${DEFAULT_LOCATION.lng}&output=embed`
           );
@@ -510,6 +534,8 @@ function CaptainHomeScreen() {
       setShowBtn("accept");
       setNewRide(data);
       setShowNewRidePanel(true);
+
+      showToast.success("🚗 ¡Nuevo viaje disponible!");
     });
 
     socket.on("ride-cancelled", (data) => {
@@ -520,6 +546,8 @@ function CaptainHomeScreen() {
 
       updateLocation();
       clearRideData();
+
+      showToast.error("❌ El pasajero canceló el viaje");
     });
 
     return () => {
@@ -567,31 +595,34 @@ function CaptainHomeScreen() {
   // RENDER
   // ==========================================
   return (
-    <div className="relative w-full h-screen bg-gray-100 overflow-hidden">
-      <Alert
-        heading={alert.heading}
-        text={alert.text}
-        isVisible={alert.isVisible}
-        onClose={hideAlert}
-        type={alert.type}
-      />
-
+    <div className="relative w-full h-screen bg-uber-extra-light-gray overflow-hidden">
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* BOTÓN DE SONIDO */}
-      {!sidebarOpen && (
-        <button
-          onClick={toggleSound}
-          className="absolute top-20 right-4 z-50 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all active:scale-95"
-          title={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
-        >
-          {soundEnabled ? (
-            <Volume2 className="w-6 h-6 text-green-600" />
-          ) : (
-            <VolumeX className="w-6 h-6 text-gray-400" />
-          )}
-        </button>
-      )}
+      <AnimatePresence>
+        {!sidebarOpen && (
+          <motion.button
+            onClick={toggleSound}
+            className={`absolute top-20 right-4 z-50 rounded-uber-lg p-3.5 shadow-uber-lg transition-all ${
+              soundEnabled
+                ? "bg-uber-green text-white"
+                : "bg-white text-uber-medium-gray"
+            }`}
+            title={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
+            initial={{ opacity: 0, scale: 0.8, x: 20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.8, x: 20 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {soundEnabled ? (
+              <Volume2 className="w-6 h-6" />
+            ) : (
+              <VolumeX className="w-6 h-6" />
+            )}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* MAPA */}
       <iframe
@@ -600,62 +631,247 @@ function CaptainHomeScreen() {
         allowFullScreen={true}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
+        title="Mapa de ubicación del conductor"
       />
 
-      {/* PANEL DE DETALLES DEL CONDUCTOR */}
-      {showCaptainDetailsPanel && !sidebarOpen && (
-        <div className="absolute bottom-0 w-full z-10 p-4 bg-white rounded-t-3xl shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
-          {/* BOTÓN TOGGLE ONLINE/OFFLINE */}
-          <CaptainToggleButton
-            isOnline={captain?.status === "online"}
-            earnings={earnings}
-            ridesCompleted={rides.accepted}
-            onToggle={handleToggleOnline}
-            loading={loading}
-          />
+      {/* PANEL DE DASHBOARD DEL CONDUCTOR */}
+      <AnimatePresence>
+        {showCaptainDetailsPanel && !sidebarOpen && (
+          <motion.div
+            className="absolute bottom-0 w-full z-10 bg-white rounded-t-uber-3xl shadow-uber-xl p-6 space-y-5 max-h-[85vh] overflow-y-auto"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          >
+            {/* HEADER CON AVATAR */}
+            <motion.div
+              className="flex items-center gap-4"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Avatar
+                src={captain?.profilePhoto}
+                name={`${captain?.fullname?.firstname || ""} ${captain?.fullname?.lastname || ""}`}
+                size="lg"
+                showStatus={true}
+                isOnline={captain?.status === "online"}
+              />
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-black">
+                  {captain?.fullname?.firstname}{" "}
+                  {captain?.fullname?.lastname}
+                </h2>
+                <p className="text-sm text-uber-medium-gray flex items-center gap-1">
+                  <MapPin className="w-4 h-4 text-uber-green" />
+                  {captain?.status === "online"
+                    ? "Disponible para viajes"
+                    : "Fuera de línea"}
+                </p>
+              </div>
+            </motion.div>
 
-          {/* ESTADÍSTICAS */}
-          <div className="grid grid-cols-3 gap-3 bg-gray-50 rounded-2xl p-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{rides.accepted}</p>
-              <p className="text-xs text-gray-500 mt-1">Viajes Aceptados</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{rides.distanceTravelled}</p>
-              <p className="text-xs text-gray-500 mt-1">Km Recorridos</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{rides.cancelled}</p>
-              <p className="text-xs text-gray-500 mt-1">Cancelados</p>
-            </div>
-          </div>
+            {/* BOTÓN TOGGLE ONLINE/OFFLINE */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <CaptainToggleButton
+                isOnline={captain?.status === "online"}
+                earnings={earnings}
+                ridesCompleted={rides.accepted}
+                onToggle={handleToggleOnline}
+                loading={loading}
+              />
+            </motion.div>
 
-          {/* INFO DEL VEHÍCULO */}
-          <div className="flex justify-between items-center bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-200 rounded-2xl p-4">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1">
-                {captain?.vehicle?.plate || captain?.vehicle?.number || "N/A"}
-              </h3>
-              <p className="text-sm text-gray-600 flex items-center gap-2">
-                <span className="capitalize">{captain?.vehicle?.color || "Color"}</span>
-                <span>•</span>
-                <User size={14} />
-                <span>{captain?.vehicle?.capacity || 0} personas</span>
-              </p>
-            </div>
+            {/* TARJETAS DE GANANCIAS */}
+            <motion.div
+              className="grid grid-cols-2 gap-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              {/* GANANCIAS DE HOY */}
+              <motion.div
+                className="bg-gradient-to-br from-uber-green to-green-600 rounded-uber-xl p-4 shadow-uber"
+                whileHover={{ scale: 1.02, y: -2 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-white" />
+                  </div>
+                  <p className="text-xs text-white/90 font-semibold uppercase">
+                    Hoy
+                  </p>
+                </div>
+                <motion.p
+                  className="text-3xl font-bold text-white"
+                  key={earnings.today}
+                  initial={{ scale: 1 }}
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 0.3 }}
+                >
+                  ${earnings.today.toLocaleString("es-CO")}
+                </motion.p>
+                <p className="text-xs text-white/80 mt-1">COP ganados hoy</p>
+              </motion.div>
 
-            <img
-              className="h-16 w-16 object-contain"
-              src={
-                captain?.vehicle?.type === "car"
-                  ? "/car.png"
-                  : `/${captain?.vehicle?.type || "car"}.webp`
-              }
-              alt="Vehículo"
-            />
-          </div>
-        </div>
-      )}
+              {/* GANANCIAS TOTALES */}
+              <motion.div
+                className="bg-gradient-to-br from-black to-uber-dark-gray rounded-uber-xl p-4 shadow-uber"
+                whileHover={{ scale: 1.02, y: -2 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-uber-green" />
+                  </div>
+                  <p className="text-xs text-white/90 font-semibold uppercase">
+                    Total
+                  </p>
+                </div>
+                <motion.p
+                  className="text-3xl font-bold text-white"
+                  key={earnings.total}
+                  initial={{ scale: 1 }}
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 0.3 }}
+                >
+                  ${earnings.total.toLocaleString("es-CO")}
+                </motion.p>
+                <p className="text-xs text-uber-light-gray mt-1">
+                  COP acumulados
+                </p>
+              </motion.div>
+            </motion.div>
+
+            {/* ESTADÍSTICAS */}
+            <motion.div
+              className="grid grid-cols-3 gap-3 bg-uber-extra-light-gray rounded-uber-xl p-4 border-2 border-uber-light-gray"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <motion.div
+                className="text-center"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="w-12 h-12 rounded-full bg-uber-green/10 flex items-center justify-center mx-auto mb-2">
+                  <CheckCircle className="w-6 h-6 text-uber-green" />
+                </div>
+                <motion.p
+                  className="text-2xl font-bold text-black"
+                  key={rides.accepted}
+                  initial={{ scale: 1 }}
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {rides.accepted}
+                </motion.p>
+                <p className="text-xs text-uber-medium-gray mt-1 font-medium">
+                  Completados
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="text-center"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+                  <Navigation className="w-6 h-6 text-blue-600" />
+                </div>
+                <motion.p
+                  className="text-2xl font-bold text-black"
+                  key={rides.distanceTravelled}
+                  initial={{ scale: 1 }}
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {rides.distanceTravelled}
+                </motion.p>
+                <p className="text-xs text-uber-medium-gray mt-1 font-medium">
+                  Km recorridos
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="text-center"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-2">
+                  <Clock className="w-6 h-6 text-uber-red" />
+                </div>
+                <motion.p
+                  className="text-2xl font-bold text-black"
+                  key={rides.cancelled}
+                  initial={{ scale: 1 }}
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {rides.cancelled}
+                </motion.p>
+                <p className="text-xs text-uber-medium-gray mt-1 font-medium">
+                  Cancelados
+                </p>
+              </motion.div>
+            </motion.div>
+
+            {/* INFO DEL VEHÍCULO */}
+            <motion.div
+              className="bg-gradient-to-r from-black to-uber-dark-gray rounded-uber-xl p-5 flex items-center justify-between"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              whileHover={{ scale: 1.01 }}
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-uber-green" />
+                  <p className="text-xs text-white/80 font-semibold uppercase">
+                    Mi Vehículo
+                  </p>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-1">
+                  {captain?.vehicle?.plate ||
+                    captain?.vehicle?.number ||
+                    "N/A"}
+                </h3>
+                {captain?.vehicle?.model && (
+                  <p className="text-sm text-uber-light-gray mb-2">
+                    {captain.vehicle.model}
+                  </p>
+                )}
+                <div className="flex items-center gap-3 text-sm text-white/70">
+                  <span className="capitalize">
+                    {captain?.vehicle?.color || "Color"}
+                  </span>
+                  <span>•</span>
+                  <span>
+                    {captain?.vehicle?.capacity || 0}{" "}
+                    {captain?.vehicle?.capacity === 1 ? "persona" : "personas"}
+                  </span>
+                </div>
+              </div>
+
+              <motion.img
+                className="h-20 w-20 object-contain brightness-0 invert"
+                src={
+                  captain?.vehicle?.type === "car"
+                    ? "/car.png"
+                    : `/${captain?.vehicle?.type || "car"}.webp`
+                }
+                alt="Vehículo"
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* PANEL DE NUEVA OFERTA */}
       {!sidebarOpen && (
