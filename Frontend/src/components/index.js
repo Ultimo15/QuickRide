@@ -4,6 +4,9 @@
 // ===========================================
 
 // ✅ COMPONENTES NUEVOS (MODERNOS)
+export { default as Avatar } from './Avatar';
+export { default as EmptyState } from './EmptyState';
+export { default as PhotoUpload } from './PhotoUpload';
 export { default as ModernSearchBar } from './ModernSearchBar';
 export { default as PriceOfferPanel } from './PriceOfferPanel';
 export { default as PaymentMethodSelector } from './PaymentMethodSelector';
