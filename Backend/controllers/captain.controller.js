@@ -104,7 +104,33 @@ module.exports.loginCaptain = asyncHandler(async (req, res) => {
 
   const token = captain.generateAuthToken();
   res.cookie("token", token);
-  res.json({ message: "Logged in successfully", token, captain });
+
+  // ✅ Respuesta estandarizada con todos los campos necesarios
+  res.json({
+    message: "Logged in successfully",
+    token,
+    captain: {
+      _id: captain._id,
+      fullname: {
+        firstname: captain.fullname.firstname,
+        lastname: captain.fullname.lastname,
+      },
+      email: captain.email,
+      phone: captain.phone,
+      profilePhoto: captain.profilePhoto,
+      status: captain.status,
+      vehicle: captain.vehicle,
+      location: captain.location,
+      rating: captain.rating,
+      completedRides: captain.completedRides,
+      cancelledRides: captain.cancelledRides,
+      totalEarnings: captain.totalEarnings,
+      rides: captain.rides,
+      socketId: captain.socketId,
+      emailVerified: captain.emailVerified,
+      lastOnline: captain.lastOnline,
+    },
+  });
 });
 
 module.exports.captainProfile = asyncHandler(async (req, res) => {
@@ -185,6 +211,26 @@ module.exports.toggleOnlineStatus = asyncHandler(async (req, res) => {
 });
 
 // ✅ NUEVO: ACTUALIZAR UBICACIÓN DEL CAPITÁN
+// ✅ NUEVO: SUBIR FOTO DE PERFIL
+module.exports.uploadProfilePhoto = asyncHandler(async (req, res) => {
+  const { photoUrl } = req.body;
+
+  if (!photoUrl) {
+    return res.status(400).json({ message: "Photo URL is required" });
+  }
+
+  const captain = await captainModel.findByIdAndUpdate(
+    req.captain._id,
+    { profilePhoto: photoUrl },
+    { new: true }
+  );
+
+  res.status(200).json({
+    message: "Profile photo updated successfully",
+    profilePhoto: captain.profilePhoto,
+  });
+});
+
 module.exports.updateLocation = asyncHandler(async (req, res) => {
   const { latitude, longitude } = req.body;
 

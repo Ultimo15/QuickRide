@@ -35,7 +35,7 @@ function ForgotPassword() {
             try {
                 setLoading(true);
                 const response = await axios.post(
-                    `${import.meta.env.VITE_SERVER_URL}/mail/${userType}/reset-password`,
+                    `${import.meta.env.VITE_SERVER_URL}/mail/${userType}/forgot-password`,
                     data
                 );
                 Console.log(response);

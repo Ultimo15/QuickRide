@@ -231,24 +231,49 @@ function initializeSocket(server) {
     // ============================================
     socket.on("message", async ({ rideId, msg, userType, time }) => {
       const date = moment().tz("Asia/Kolkata").format("MMM DD");
-      
+
       socket.to(rideId).emit("receiveMessage", { msg, by: userType, time });
 
       try {
         const ride = await rideModel.findOne({ _id: rideId });
         if (ride) {
-          ride.messages.push({ 
-            msg, 
-            by: userType, 
-            time, 
-            date, 
-            timestamp: new Date() 
+          ride.messages.push({
+            msg,
+            by: userType,
+            time,
+            date,
+            timestamp: new Date()
           });
           await ride.save();
         }
       } catch (error) {
         console.error("Error saving message:", error.message);
       }
+    });
+
+    // 🆕 ============================================
+    // INDICADOR DE "ESCRIBIENDO..."
+    // ============================================
+    socket.on("typing", ({ rideId, userType }) => {
+      if (!rideId || !userType) {
+        console.warn("⚠️ Datos incompletos en evento typing");
+        return;
+      }
+
+      // Emitir a todos en la sala excepto al que envió el evento
+      socket.to(rideId).emit("user-typing", { userType });
+      console.log(`✍️ ${userType} está escribiendo en viaje ${rideId}`);
+    });
+
+    socket.on("stop-typing", ({ rideId }) => {
+      if (!rideId) {
+        console.warn("⚠️ rideId no proporcionado en stop-typing");
+        return;
+      }
+
+      // Emitir a todos en la sala excepto al que envió el evento
+      socket.to(rideId).emit("user-stop-typing");
+      console.log(`✋ Escribiendo detenido en viaje ${rideId}`);
     });
 
     // ============================================

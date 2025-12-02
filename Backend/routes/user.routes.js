@@ -28,6 +28,11 @@ router.post("/update", authUser,
 
 router.get("/profile", authUser, userController.userProfile);
 
+router.post("/upload-photo", authUser,
+    body("photoUrl").notEmpty().withMessage("Photo URL is required"),
+    userController.uploadProfilePhoto
+);
+
 router.get("/logout", authUser, userController.logoutUser);
 
 router.post(

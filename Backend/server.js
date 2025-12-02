@@ -32,9 +32,13 @@ if (process.env.ENVIRONMENT == "production") {
   app.use(morgan("dev"));
 }
 
-// Configuración CORS ajustada para permitir conexiones estables
+// Configuración CORS mejorada con seguridad
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
 app.use(cors({
-    origin: '*', 
+    origin: process.env.ENVIRONMENT === 'production' ? allowedOrigins : '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
@@ -42,6 +46,24 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Middleware de compatibilidad para rutas con prefijo /api/
+// El frontend usa /api/users, /api/captains, /api/rides
+// Redirigimos a las rutas correctas sin el prefijo /api/
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    // Normalizar: /api/users → /user, /api/captains → /captain, /api/rides → /ride
+    const normalizedPath = req.path
+      .replace('/api/users', '/user')
+      .replace('/api/captains', '/captain')
+      .replace('/api/rides', '/ride')
+      .replace('/api/maps', '/map')
+      .replace('/api/mail', '/mail');
+
+    req.url = normalizedPath + (req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '');
+  }
+  next();
+});
 
 if (process.env.ENVIRONMENT == "production") {
   // --- SOLUCIÓN APLICADA AQUÍ ---

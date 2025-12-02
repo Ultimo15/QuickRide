@@ -44,6 +44,12 @@ router.post("/update",
 // ✅ OBTENER PERFIL
 router.get("/profile", authCaptain, captainController.captainProfile);
 
+// ✅ SUBIR FOTO DE PERFIL
+router.post("/upload-photo", authCaptain,
+    body("photoUrl").notEmpty().withMessage("Photo URL is required"),
+    captainController.uploadProfilePhoto
+);
+
 // ✅ NUEVO: TOGGLE ESTADO ONLINE/OFFLINE
 router.post("/toggle-status", authCaptain, captainController.toggleOnlineStatus);
 
